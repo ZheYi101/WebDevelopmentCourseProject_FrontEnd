@@ -1,0 +1,411 @@
+@use './theme' as *;
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100vh;
+  margin: 0;
+}
+
+body {
+  min-width: 1280px;
+  font-family: $theme-font-ui;
+  color: $theme-foreground;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.96), transparent 24%),
+    radial-gradient(circle at right top, rgba(231, 200, 187, 0.4), transparent 20%),
+    linear-gradient(180deg, #fcfbf8 0%, $theme-background 48%, $theme-background-elevated 100%);
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: $theme-font-code;
+}
+
+::selection {
+  background: $theme-accent-soft;
+  color: $theme-foreground;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+p {
+  margin: 0;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mb-16 {
+  margin-bottom: 16px;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-shell__aside {
+  border-right: 1px solid $theme-border;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 251, 246, 0.82)),
+    $theme-surface;
+  backdrop-filter: blur(20px);
+}
+
+.app-shell__brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 24px 20px 12px;
+}
+
+.app-shell__brand strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.app-shell__brand p {
+  color: $theme-foreground-secondary;
+  font-size: 13px;
+}
+
+.app-shell__brand-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #d79879, $theme-accent 52%, #bb7355 100%);
+  color: #fffdf9;
+  font-weight: 700;
+  box-shadow: $theme-shadow-soft;
+}
+
+.app-shell__menu {
+  border-right: none;
+  background: transparent;
+}
+
+.app-shell__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: auto;
+  padding: 24px 28px 12px;
+}
+
+.app-shell__header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  color: $theme-foreground;
+}
+
+.app-shell__header p {
+  color: $theme-foreground-secondary;
+}
+
+.app-shell__user {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid $theme-border;
+  border-radius: 18px;
+  background: $theme-surface;
+  box-shadow: $theme-shadow-soft;
+  cursor: pointer;
+}
+
+.app-shell__user p {
+  color: $theme-foreground-secondary;
+  font-size: 13px;
+}
+
+.app-shell__main {
+  padding: 12px 28px 28px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.metric-card__label {
+  margin-bottom: 14px;
+  color: $theme-foreground-secondary;
+  font-size: 14px;
+}
+
+.metric-card__value {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 30px;
+  line-height: 1;
+  color: $theme-foreground;
+}
+
+.chart-panel {
+  width: 100%;
+  height: 320px;
+}
+
+.page-section {
+  border: 1px solid $theme-border;
+  border-radius: 20px;
+  background: $theme-surface;
+  box-shadow: $theme-shadow-soft;
+}
+
+.page-section__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.page-section__header strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+  color: $theme-foreground;
+}
+
+.page-section__header p {
+  color: $theme-foreground-secondary;
+  font-size: 14px;
+}
+
+.summary-card {
+  margin-bottom: 16px;
+  border: 1px solid $theme-border;
+  border-radius: 20px;
+  background: $theme-surface-muted;
+  box-shadow: $theme-shadow-soft;
+}
+
+.summary-card p {
+  margin-top: 10px;
+  color: $theme-foreground-secondary;
+}
+
+.filter-form {
+  margin-bottom: 16px;
+}
+
+.login-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-page__panel {
+  display: grid;
+  grid-template-columns: 1.15fr 420px;
+  gap: 24px;
+  align-items: stretch;
+  width: min(1180px, 100%);
+}
+
+.login-page__hero {
+  padding: 48px;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.13), transparent 24%),
+    linear-gradient(135deg, #d59677 0%, $theme-accent 42%, #8a5b45 100%);
+  color: #fffaf5;
+  box-shadow: $theme-shadow;
+}
+
+.login-page__hero span {
+  display: inline-block;
+  margin-bottom: 20px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.login-page__hero h1 {
+  margin: 0 0 16px;
+  font-size: 40px;
+  line-height: 1.15;
+}
+
+.login-page__hero p {
+  max-width: 560px;
+  color: rgba(255, 250, 245, 0.9);
+  line-height: 1.75;
+}
+
+.login-page__hero ul {
+  margin: 28px 0 0;
+  padding-left: 20px;
+  line-height: 2;
+}
+
+.login-page__card {
+  align-self: center;
+  border: 1px solid $theme-border;
+  border-radius: 28px;
+  background: $theme-surface-strong;
+  box-shadow: $theme-shadow;
+}
+
+.login-page__card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 22px;
+  color: $theme-foreground;
+}
+
+.login-page__card p {
+  color: $theme-foreground-secondary;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.status-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+.el-card {
+  border-color: $theme-border;
+  background: $theme-surface-strong;
+  box-shadow: $theme-shadow-soft;
+}
+
+.el-card__header {
+  border-bottom-color: $theme-border;
+}
+
+.el-table {
+  --el-table-border-color: var(--theme-border);
+  --el-table-header-bg-color: #fbf6f1;
+  --el-table-tr-bg-color: rgba(255, 253, 249, 0.82);
+  --el-table-row-hover-bg-color: #f8efe8;
+  border-radius: 18px;
+}
+
+.el-menu-item {
+  margin: 4px 10px;
+  border-radius: 14px;
+}
+
+.el-menu-item.is-active {
+  background: $theme-accent-ghost;
+  box-shadow: inset 0 0 0 1px $theme-accent-ghost-strong;
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  box-shadow: 0 0 0 1px $theme-border inset;
+  background: #fffdfa;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+  box-shadow:
+    0 0 0 1px $theme-accent inset,
+    0 0 0 4px rgba(204, 125, 94, 0.08);
+}
+
+.el-button {
+  border-radius: 14px;
+}
+
+.el-button--default {
+  border-color: $theme-border;
+  background: $theme-surface-strong;
+  color: $theme-foreground;
+}
+
+.el-button--default:hover {
+  border-color: $theme-accent-soft;
+  color: $theme-accent;
+  background: #fff8f3;
+}
+
+.el-dropdown-menu,
+.el-popper {
+  --el-bg-color-overlay: #fffdf9;
+}
+
+@media (max-width: 1440px) {
+  body {
+    min-width: 0;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-page__panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell__aside {
+    display: none;
+  }
+
+  .app-shell__header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    padding-inline: 16px;
+  }
+
+  .app-shell__main {
+    padding-inline: 16px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-page {
+    padding: 16px;
+  }
+
+  .login-page__hero,
+  .login-page__card {
+    padding: 24px;
+  }
+
+  .login-page__hero h1 {
+    font-size: 30px;
+  }
+}

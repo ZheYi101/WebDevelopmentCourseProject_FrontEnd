@@ -1,0 +1,88 @@
+:root {
+  color-scheme: light;
+
+  --theme-accent: #cc7d5e;
+  --theme-accent-strong: #b86f53;
+  --theme-accent-soft: #e7c8bb;
+  --theme-accent-muted: #f4e6de;
+  --theme-accent-ghost: rgba(204, 125, 94, 0.16);
+  --theme-accent-ghost-strong: rgba(204, 125, 94, 0.28);
+
+  --theme-background: #f9f9f7;
+  --theme-background-elevated: #f4efe9;
+  --theme-surface: rgba(255, 252, 248, 0.84);
+  --theme-surface-strong: #fffdf9;
+  --theme-surface-muted: rgba(255, 248, 241, 0.94);
+
+  --theme-foreground: #2d2d2b;
+  --theme-foreground-secondary: #6f665f;
+  --theme-foreground-tertiary: #9a8f84;
+
+  --theme-border: rgba(45, 45, 43, 0.08);
+  --theme-border-strong: rgba(45, 45, 43, 0.14);
+  --theme-shadow: 0 24px 60px rgba(99, 76, 62, 0.09);
+  --theme-shadow-soft: 0 12px 30px rgba(99, 76, 62, 0.07);
+
+  --theme-font-ui: 'Geist', 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --theme-font-code: 'Geist Mono', 'Cascadia Mono', 'SFMono-Regular', ui-monospace, monospace;
+
+  --el-color-primary: var(--theme-accent);
+  --el-color-primary-light-3: #d79278;
+  --el-color-primary-light-5: #dfa893;
+  --el-color-primary-light-7: #e9c3b3;
+  --el-color-primary-light-8: #efddd3;
+  --el-color-primary-light-9: #f7eee8;
+  --el-color-primary-dark-2: #a56248;
+
+  --el-bg-color: var(--theme-surface-strong);
+  --el-bg-color-page: var(--theme-background);
+  --el-bg-color-overlay: var(--theme-surface-strong);
+  --el-fill-color-blank: var(--theme-surface-strong);
+  --el-fill-color-light: #f7f1eb;
+  --el-fill-color-lighter: #fbf7f2;
+  --el-fill-color-extra-light: #fdfaf6;
+
+  --el-text-color-primary: var(--theme-foreground);
+  --el-text-color-regular: var(--theme-foreground-secondary);
+  --el-text-color-secondary: var(--theme-foreground-tertiary);
+  --el-text-color-placeholder: #aa9e94;
+
+  --el-border-color: var(--theme-border);
+  --el-border-color-light: rgba(45, 45, 43, 0.06);
+  --el-border-color-lighter: rgba(45, 45, 43, 0.04);
+  --el-border-color-extra-light: rgba(45, 45, 43, 0.03);
+
+  --el-box-shadow-light: var(--theme-shadow-soft);
+  --el-box-shadow: var(--theme-shadow);
+  --el-mask-color: rgba(45, 45, 43, 0.3);
+
+  --el-menu-bg-color: transparent;
+  --el-menu-hover-bg-color: var(--theme-accent-ghost);
+  --el-menu-active-color: var(--theme-accent);
+  --el-menu-text-color: var(--theme-foreground-secondary);
+
+  --el-border-radius-base: 14px;
+  --el-border-radius-small: 10px;
+  --el-border-radius-round: 999px;
+}
+
+$theme-accent: var(--theme-accent);
+$theme-accent-soft: var(--theme-accent-soft);
+$theme-accent-ghost: var(--theme-accent-ghost);
+$theme-accent-ghost-strong: var(--theme-accent-ghost-strong);
+
+$theme-background: var(--theme-background);
+$theme-background-elevated: var(--theme-background-elevated);
+$theme-surface: var(--theme-surface);
+$theme-surface-strong: var(--theme-surface-strong);
+$theme-surface-muted: var(--theme-surface-muted);
+
+$theme-foreground: var(--theme-foreground);
+$theme-foreground-secondary: var(--theme-foreground-secondary);
+
+$theme-border: var(--theme-border);
+$theme-shadow: var(--theme-shadow);
+$theme-shadow-soft: var(--theme-shadow-soft);
+
+$theme-font-ui: var(--theme-font-ui);
+$theme-font-code: var(--theme-font-code);
