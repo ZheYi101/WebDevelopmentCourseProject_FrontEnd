@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-import { appTitle, defaultRoutePath } from '@/config/app'
+import { appTitle, defaultRoutePath } from '@/configs/app'
 import type { RoleCode } from '@/constants/roles'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { useAuthStore } from '@/stores/auth'

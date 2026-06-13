@@ -3,8 +3,8 @@ import { ElMessage } from 'element-plus'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { appTitle } from '@/config/app'
-import { appMenus } from '@/config/menu'
+import { appTitle } from '@/configs/app'
+import { appMenus } from '@/configs/menu'
 import { useAuthStore } from '@/stores/auth'
 import { iconMap } from '@/utils/icons'
 

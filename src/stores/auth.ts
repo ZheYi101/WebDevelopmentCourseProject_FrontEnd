@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-import { defaultRoutePath } from '@/config/app'
+import { defaultRoutePath } from '@/configs/app'
 import { type RoleCode, roleOptions } from '@/constants/roles'
 import { storageKeys } from '@/utils/storage'
 

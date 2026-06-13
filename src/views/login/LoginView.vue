@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { appTitle } from '@/config/app'
+import { appTitle } from '@/configs/app'
 import { type RoleCode, roleOptions } from '@/constants/roles'
 import { authService } from '@/services/auth-service'
 import { useAuthStore } from '@/stores/auth'
