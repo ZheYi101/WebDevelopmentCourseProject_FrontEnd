@@ -1,3 +1,5 @@
 export const storageKeys = {
-  auth: 'performance-system-auth',
+  token: 'performance-system-token',
+  currentUser: 'performance-system-current-user',
+  demoMode: 'performance-system-demo-mode',
 } as const

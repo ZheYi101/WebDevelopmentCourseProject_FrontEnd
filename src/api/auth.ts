@@ -1,5 +1,2 @@
-export {
-  authService,
-  type LoginCommand,
-  type LoginResult,
-} from '@/services/auth-service'
+export { authService } from '@/services/auth-service'
+export type { ChangePasswordRequest, CurrentUser, LoginRequest, LoginResponseData } from '@/types/api'

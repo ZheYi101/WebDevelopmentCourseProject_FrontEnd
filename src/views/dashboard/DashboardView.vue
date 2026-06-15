@@ -6,33 +6,97 @@ import RadarScoreChart from '@/components/charts/RadarScoreChart.vue'
 import PageSection from '@/components/common/PageSection.vue'
 import MetricCard from '@/components/dashboard/MetricCard.vue'
 import { useDashboardSummaryQuery } from '@/composables/use-dashboard-summary-query'
-import type { DashboardMetric, PendingTask } from '@/types/dashboard'
+import { useMonthlyStatisticsQuery, useYearlyStatisticsQuery } from '@/composables/use-statistics'
+import type { DashboardMetric } from '@/types/dashboard'
+import { formatScore } from '@/utils/format'
+
+const currentDate = new Date()
+const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+const currentYear = String(currentDate.getFullYear())
 
 const summaryQuery = useDashboardSummaryQuery()
+const monthlyQuery = useMonthlyStatisticsQuery(
+  computed(() => ({
+    month: currentMonth,
+  })),
+)
+const yearlyQuery = useYearlyStatisticsQuery(
+  computed(() => ({
+    year: currentYear,
+  })),
+)
 
-const metrics = computed<DashboardMetric[]>(() => [
-  {
-    label: '本月待评分成员',
-    value: `${summaryQuery.data.value?.pendingAssessments ?? 18} 人`,
-    trend: '较上月 +4',
-    tone: 'warning',
-  },
-  {
-    label: '进行中周任务',
-    value: `${summaryQuery.data.value?.activeTasks ?? 46} 项`,
-    trend: '逾期 5 项',
-    tone: 'danger',
-  },
-  { label: '团队平均绩效', value: '89.2', trend: '连续 3 月上升', tone: 'success' },
-  { label: '关键审计事件', value: '12 条', trend: '本周新增 2 条', tone: 'primary' },
-])
+const metrics = computed<DashboardMetric[]>(() => {
+  const summary = summaryQuery.data.value
+  const monthly = monthlyQuery.data.value
 
-const pendingTasks: PendingTask[] = [
-  { title: '绩效评分规则联调', owner: '王晨', deadline: '06-15', status: '待经理评分' },
-  { title: '周报补录与审核', owner: '李娜', deadline: '06-16', status: '待成员提交' },
-  { title: '项目里程碑复盘', owner: '陈诚', deadline: '06-17', status: '待总监确认' },
-  { title: '异常登录审计核查', owner: '审计管理员', deadline: '06-18', status: '待日志复查' },
-]
+  return [
+    {
+      label: '本月平均得分',
+      value: formatScore(summary?.currentMonthAverageScore ?? monthly?.averageScore),
+      trend: `最高分 ${formatScore(monthly?.highestScore)}`,
+      tone: 'success',
+      description: `最低分 ${formatScore(monthly?.lowestScore)}，已考核 ${monthly?.assessedCount ?? 0} 人`,
+    },
+    {
+      label: '待处理考核',
+      value: String(summary?.pendingAssessments ?? 0),
+      trend: '月度评分待推进',
+      tone: 'warning',
+      description: '涉及待评分、待归档的月度考核单',
+    },
+    {
+      label: '逾期任务数',
+      value: String(summary?.overdueTasks ?? 0),
+      trend: '任务闭环重点跟踪',
+      tone: 'danger',
+      description: '建议优先检查阻塞任务和进度滞后项',
+    },
+    {
+      label: '周报待评审',
+      value: String(summary?.weeklyReportsPendingReview ?? 0),
+      trend: `活跃项目 ${summary?.activeProjects ?? 0} 个`,
+      tone: 'primary',
+      description: '用于经理和总监快速定位本周审批压力',
+    },
+  ]
+})
+
+const trendLabels = computed(() => yearlyQuery.data.value?.monthlyTrend.map((item) => item.month) ?? [])
+const trendValues = computed(() => yearlyQuery.data.value?.monthlyTrend.map((item) => item.averageScore) ?? [])
+const teamComparison = computed(() => monthlyQuery.data.value?.teamComparison ?? [])
+
+const radarIndicators = computed(() =>
+  teamComparison.value.map((item) => ({
+    name: item.teamName,
+    max: 100,
+  })),
+)
+
+const radarValues = computed(() => teamComparison.value.map((item) => item.averageScore))
+
+const alerts = computed(() => {
+  const summary = summaryQuery.data.value
+  const monthly = monthlyQuery.data.value
+
+  return [
+    {
+      title: '考核推进',
+      value: `${summary?.pendingAssessments ?? 0} 项`,
+      description: '本月待推进的月度考核数量。',
+    },
+    {
+      title: '周报审批',
+      value: `${summary?.weeklyReportsPendingReview ?? 0} 份`,
+      description: '待经理评审的周报总量。',
+    },
+    {
+      title: '成绩波动',
+      value: monthly ? `${formatScore(monthly.highestScore)} / ${formatScore(monthly.lowestScore)}` : '-',
+      description: '当前月份的最高分与最低分。',
+    },
+  ]
+})
 </script>
 
 <template>
@@ -41,21 +105,82 @@ const pendingTasks: PendingTask[] = [
   </section>
 
   <section class="content-grid">
-    <PageSection title="月度绩效趋势" description="用于展示月/季/年绩效分数变化，后续可接统计接口。">
-      <LineTrendChart />
+    <PageSection title="年度得分趋势" description="基于年度统计接口展示月均分变化，用于观察团队绩效走势。">
+      <template v-if="trendLabels.length">
+        <LineTrendChart :labels="trendLabels" :values="trendValues" series-name="平均得分" />
+      </template>
+      <div v-else class="empty-block">暂无年度趋势数据</div>
     </PageSection>
 
-    <PageSection title="评分维度雷达图" description="适合答辩时展示任务质量、协作效率等多维指标。">
-      <RadarScoreChart />
+    <PageSection title="本月团队对比" description="将当前月份各团队平均分映射为雷达图，适合答辩时展示横向对比。">
+      <template v-if="radarIndicators.length">
+        <RadarScoreChart :indicators="radarIndicators" :values="radarValues" />
+      </template>
+      <div v-else class="empty-block">暂无团队对比数据</div>
     </PageSection>
   </section>
 
-  <PageSection title="待推进事项" description="聚合周任务、周报、评分与审计等核心流程，便于首页总览。">
-    <el-table :data="pendingTasks">
-      <el-table-column prop="title" label="事项" min-width="220" />
-      <el-table-column prop="owner" label="负责人" min-width="120" />
-      <el-table-column prop="deadline" label="截止日期" width="120" />
-      <el-table-column prop="status" label="当前状态" min-width="180" />
-    </el-table>
+  <PageSection title="重点提醒" description="结合统计结果，将本月最值得跟进的事项压缩到首页。">
+    <el-row :gutter="16">
+      <el-col v-for="item in alerts" :key="item.title" :xs="24" :md="8">
+        <el-card class="summary-card" shadow="hover">
+          <strong>{{ item.title }}</strong>
+          <p>{{ item.value }}</p>
+          <p>{{ item.description }}</p>
+        </el-card>
+      </el-col>
+    </el-row>
   </PageSection>
 </template>
+
+<style scoped lang="scss">
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.summary-card {
+  height: 100%;
+  border: 1px solid var(--theme-border);
+  border-radius: 20px;
+  background: var(--theme-surface-muted);
+  box-shadow: var(--theme-shadow-soft);
+}
+
+.summary-card p {
+  margin-top: 10px;
+  color: var(--theme-foreground-secondary);
+}
+
+.empty-block {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  color: var(--theme-foreground-secondary);
+}
+
+@media (max-width: 1440px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

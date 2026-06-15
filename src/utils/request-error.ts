@@ -14,7 +14,7 @@ export class RequestError extends Error {
   }
 
   static fromAxiosError(error: AxiosError) {
-    const requestError = new RequestError('网络异常', String(error.code ?? ''))
+    const requestError = new RequestError('网络异常，请稍后重试', String(error.code ?? ''))
     requestError.originError = error
     return requestError
   }

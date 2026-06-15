@@ -1,16 +1,17 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import { appTitle, defaultRoutePath } from '@/configs/app'
-import type { RoleCode } from '@/constants/roles'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { RoleCode } from '@/types/api'
 
 const allRoles: RoleCode[] = [
-  'system_admin',
-  'department_manager',
-  'technical_director',
-  'general_manager',
-  'audit_admin',
+  'SYSTEM_ADMIN',
+  'DEPT_MANAGER',
+  'TECH_DIRECTOR',
+  'GENERAL_MANAGER',
+  'AUDIT_ADMIN',
+  'TEAM_MEMBER',
 ]
 
 const routes: RouteRecordRaw[] = [
@@ -33,7 +34,7 @@ const routes: RouteRecordRaw[] = [
         name: 'dashboard',
         component: () => import('@/views/dashboard/DashboardView.vue'),
         meta: {
-          title: '首页仪表盘',
+          title: '仪表盘',
           roles: allRoles,
         },
       },
@@ -42,8 +43,8 @@ const routes: RouteRecordRaw[] = [
         name: 'users',
         component: () => import('@/views/system/UserManagementView.vue'),
         meta: {
-          title: '用户与角色',
-          roles: ['system_admin'],
+          title: '用户管理',
+          roles: ['SYSTEM_ADMIN'],
         },
       },
       {
@@ -52,7 +53,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/organization/TeamManagementView.vue'),
         meta: {
           title: '团队与成员',
-          roles: ['system_admin', 'department_manager'],
+          roles: ['SYSTEM_ADMIN', 'DEPT_MANAGER'],
         },
       },
       {
@@ -61,7 +62,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/projects/ProjectManagementView.vue'),
         meta: {
           title: '项目管理',
-          roles: ['department_manager', 'technical_director'],
+          roles: ['DEPT_MANAGER', 'TECH_DIRECTOR', 'GENERAL_MANAGER'],
         },
       },
       {
@@ -69,8 +70,8 @@ const routes: RouteRecordRaw[] = [
         name: 'tasks',
         component: () => import('@/views/tasks/TaskManagementView.vue'),
         meta: {
-          title: '周任务管理',
-          roles: ['department_manager', 'technical_director', 'general_manager'],
+          title: '任务管理',
+          roles: ['DEPT_MANAGER', 'TECH_DIRECTOR', 'GENERAL_MANAGER', 'TEAM_MEMBER'],
         },
       },
       {
@@ -79,7 +80,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/reports/WeeklyReportView.vue'),
         meta: {
           title: '周报管理',
-          roles: ['department_manager', 'technical_director', 'general_manager'],
+          roles: ['DEPT_MANAGER', 'TECH_DIRECTOR', 'GENERAL_MANAGER', 'TEAM_MEMBER'],
         },
       },
       {
@@ -88,7 +89,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/assessments/AssessmentView.vue'),
         meta: {
           title: '月度考核',
-          roles: ['department_manager', 'technical_director', 'general_manager'],
+          roles: ['DEPT_MANAGER', 'TECH_DIRECTOR', 'GENERAL_MANAGER', 'TEAM_MEMBER'],
         },
       },
       {
@@ -97,7 +98,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/statistics/StatisticsView.vue'),
         meta: {
           title: '统计分析',
-          roles: ['department_manager', 'technical_director', 'general_manager', 'audit_admin'],
+          roles: ['SYSTEM_ADMIN', 'DEPT_MANAGER', 'TECH_DIRECTOR', 'GENERAL_MANAGER', 'AUDIT_ADMIN'],
         },
       },
       {
@@ -106,7 +107,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/audit/AuditLogView.vue'),
         meta: {
           title: '审计日志',
-          roles: ['audit_admin', 'system_admin'],
+          roles: ['AUDIT_ADMIN', 'SYSTEM_ADMIN'],
         },
       },
     ],
@@ -136,12 +137,31 @@ routerConfig.beforeEach((to) => {
     return authStore.getDefaultRoute()
   }
 
-  if (!requiresGuest && !authStore.isLoggedIn) {
-    return '/login'
+  if (!requiresGuest) {
+    if (!authStore.token) {
+      return '/login'
+    }
+
+    if (!authStore.currentUser) {
+      return authStore.fetchCurrentUser().then(
+        () => {
+          const allowedRoles = to.meta.roles as RoleCode[] | undefined
+          if (allowedRoles && !authStore.hasAnyRole(allowedRoles)) {
+            return authStore.getDefaultRoute()
+          }
+
+          return true
+        },
+        () => {
+          authStore.clearSession()
+          return '/login'
+        },
+      )
+    }
   }
 
   const allowedRoles = to.meta.roles as RoleCode[] | undefined
-  if (allowedRoles && !allowedRoles.includes(authStore.auth.roleCode)) {
+  if (allowedRoles && !authStore.hasAnyRole(allowedRoles)) {
     return authStore.getDefaultRoute()
   }
 

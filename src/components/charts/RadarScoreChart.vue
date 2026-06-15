@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import * as echarts from 'echarts'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { getThemeCssVar } from '@/utils/theme'
+
+const props = defineProps<{
+  indicators: Array<{ name: string; max: number }>
+  values: number[]
+}>()
 
 const chartRef = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
 
-onMounted(() => {
+function renderChart() {
   if (!chartRef.value) {
     return
   }
@@ -18,21 +23,15 @@ onMounted(() => {
   const foregroundSecondary = getThemeCssVar('--theme-foreground-secondary', '#6f665f')
   const border = getThemeCssVar('--theme-border', 'rgba(45, 45, 43, 0.08)')
 
-  chart = echarts.init(chartRef.value)
+  chart ??= echarts.init(chartRef.value)
   chart.setOption({
     textStyle: {
       color: foregroundSecondary,
-      fontFamily: 'Geist, Inter, PingFang SC, Microsoft YaHei, sans-serif',
+      fontFamily: 'Geist, PingFang SC, Microsoft YaHei, sans-serif',
     },
     radar: {
-      indicator: [
-        { name: '任务达成', max: 100 },
-        { name: '协作效率', max: 100 },
-        { name: '质量控制', max: 100 },
-        { name: '周报质量', max: 100 },
-        { name: '项目贡献', max: 100 },
-      ],
-      radius: '60%',
+      indicator: props.indicators,
+      radius: '62%',
       splitLine: {
         lineStyle: {
           color: border,
@@ -57,7 +56,7 @@ onMounted(() => {
         type: 'radar',
         data: [
           {
-            value: [88, 84, 90, 79, 86],
+            value: props.values,
             areaStyle: {
               color: accentGhost,
             },
@@ -73,20 +72,40 @@ onMounted(() => {
       },
     ],
   })
+  chart.resize()
+}
 
+function resizeChart() {
+  chart?.resize()
+}
+
+onMounted(async () => {
+  await nextTick()
+  renderChart()
   window.addEventListener('resize', resizeChart)
 })
+
+watch(
+  () => [props.indicators, props.values],
+  () => {
+    renderChart()
+  },
+  { deep: true },
+)
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeChart)
   chart?.dispose()
 })
-
-function resizeChart() {
-  chart?.resize()
-}
 </script>
 
 <template>
   <div ref="chartRef" class="chart-panel"></div>
 </template>
+
+<style scoped lang="scss">
+.chart-panel {
+  width: 100%;
+  height: 320px;
+}
+</style>

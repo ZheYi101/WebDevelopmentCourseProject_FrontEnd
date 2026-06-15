@@ -1,13 +1,24 @@
 <script setup lang="ts">
 import * as echarts from 'echarts'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { getThemeCssVar } from '@/utils/theme'
+
+const props = withDefaults(
+  defineProps<{
+    labels: string[]
+    values: number[]
+    seriesName?: string
+  }>(),
+  {
+    seriesName: '趋势',
+  },
+)
 
 const chartRef = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
 
-onMounted(() => {
+function renderChart() {
   if (!chartRef.value) {
     return
   }
@@ -17,24 +28,24 @@ onMounted(() => {
   const foregroundSecondary = getThemeCssVar('--theme-foreground-secondary', '#6f665f')
   const border = getThemeCssVar('--theme-border', 'rgba(45, 45, 43, 0.08)')
 
-  chart = echarts.init(chartRef.value)
+  chart ??= echarts.init(chartRef.value)
   chart.setOption({
     tooltip: {
       trigger: 'axis',
     },
     textStyle: {
       color: foregroundSecondary,
-      fontFamily: 'Geist, Inter, PingFang SC, Microsoft YaHei, sans-serif',
+      fontFamily: 'Geist, PingFang SC, Microsoft YaHei, sans-serif',
     },
     grid: {
-      left: 30,
+      left: 32,
       right: 20,
       top: 30,
-      bottom: 30,
+      bottom: 28,
     },
     xAxis: {
       type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月'],
+      data: props.labels,
       boundaryGap: false,
       axisLine: {
         lineStyle: {
@@ -47,8 +58,6 @@ onMounted(() => {
     },
     yAxis: {
       type: 'value',
-      min: 60,
-      max: 100,
       splitLine: {
         lineStyle: {
           color: border,
@@ -60,9 +69,10 @@ onMounted(() => {
     },
     series: [
       {
-        name: '团队均分',
+        name: props.seriesName,
         type: 'line',
         smooth: true,
+        data: props.values,
         areaStyle: {
           color: accentGhost,
         },
@@ -73,24 +83,43 @@ onMounted(() => {
         itemStyle: {
           color: accent,
         },
-        data: [78, 81, 84, 86, 88, 91],
       },
     ],
   })
+  chart.resize()
+}
 
+function resizeChart() {
+  chart?.resize()
+}
+
+onMounted(async () => {
+  await nextTick()
+  renderChart()
   window.addEventListener('resize', resizeChart)
 })
+
+watch(
+  () => [props.labels, props.values],
+  () => {
+    renderChart()
+  },
+  { deep: true },
+)
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeChart)
   chart?.dispose()
 })
-
-function resizeChart() {
-  chart?.resize()
-}
 </script>
 
 <template>
   <div ref="chartRef" class="chart-panel"></div>
 </template>
+
+<style scoped lang="scss">
+.chart-panel {
+  width: 100%;
+  height: 320px;
+}
+</style>
