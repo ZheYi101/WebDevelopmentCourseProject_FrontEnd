@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import {
+  Bell,
+  DataAnalysis,
+  Histogram,
+  TrendCharts,
+} from '@element-plus/icons-vue'
 import { computed } from 'vue'
 
 import LineTrendChart from '@/components/charts/LineTrendChart.vue'
@@ -84,16 +90,25 @@ const alerts = computed(() => {
       title: '考核推进',
       value: `${summary?.pendingAssessments ?? 0} 项`,
       description: '本月待推进的月度考核数量。',
+      note: '建议优先处理待归档项',
+      tone: 'warning',
+      icon: Histogram,
     },
     {
       title: '周报审批',
       value: `${summary?.weeklyReportsPendingReview ?? 0} 份`,
       description: '待经理评审的周报总量。',
+      note: '可集中安排本周评审',
+      tone: 'primary',
+      icon: Bell,
     },
     {
       title: '成绩波动',
       value: monthly ? `${formatScore(monthly.highestScore)} / ${formatScore(monthly.lowestScore)}` : '-',
       description: '当前月份的最高分与最低分。',
+      note: '关注波动明显的团队',
+      tone: 'info',
+      icon: TrendCharts,
     },
   ]
 })
@@ -101,86 +116,183 @@ const alerts = computed(() => {
 
 <template>
   <section class="dashboard-grid">
-    <MetricCard v-for="item in metrics" :key="item.label" :item="item" />
+    <div class="dashboard-grid__metrics">
+      <MetricCard v-for="item in metrics" :key="item.label" :item="item" />
+    </div>
   </section>
 
   <section class="content-grid">
-    <PageSection title="年度得分趋势" description="基于年度统计接口展示月均分变化，用于观察团队绩效走势。">
+    <PageSection title="年度得分趋势" description="按月份查看平均得分变化，便于判断整体绩效走势。">
       <template v-if="trendLabels.length">
         <LineTrendChart :labels="trendLabels" :values="trendValues" series-name="平均得分" />
       </template>
-      <div v-else class="empty-block">暂无年度趋势数据</div>
+      <div v-else class="dashboard-empty">
+        <el-icon><TrendCharts /></el-icon>
+        <strong>暂无年度趋势数据</strong>
+        <p>当前没有可用于展示的年度统计结果。</p>
+      </div>
     </PageSection>
 
-    <PageSection title="本月团队对比" description="将当前月份各团队平均分映射为雷达图，适合答辩时展示横向对比。">
+    <PageSection title="本月团队对比" description="查看当前月份各团队平均分差异，便于横向比较。">
       <template v-if="radarIndicators.length">
         <RadarScoreChart :indicators="radarIndicators" :values="radarValues" />
       </template>
-      <div v-else class="empty-block">暂无团队对比数据</div>
+      <div v-else class="dashboard-empty">
+        <el-icon><DataAnalysis /></el-icon>
+        <strong>暂无团队对比数据</strong>
+        <p>当前月份尚未生成团队维度的对比结果。</p>
+      </div>
     </PageSection>
   </section>
 
-  <PageSection title="重点提醒" description="结合统计结果，将本月最值得跟进的事项压缩到首页。">
-    <el-row :gutter="16">
-      <el-col v-for="item in alerts" :key="item.title" :xs="24" :md="8">
-        <el-card class="summary-card" shadow="hover">
-          <strong>{{ item.title }}</strong>
-          <p>{{ item.value }}</p>
-          <p>{{ item.description }}</p>
-        </el-card>
-      </el-col>
-    </el-row>
+  <PageSection title="重点提醒" description="将当前最值得跟进的事项压缩到首页，便于快速处理。">
+    <div class="dashboard-alert-grid">
+      <article v-for="item in alerts" :key="item.title" class="reminder-card" :data-tone="item.tone">
+        <div class="reminder-card__top">
+          <div class="reminder-card__icon">
+            <el-icon><component :is="item.icon" /></el-icon>
+          </div>
+          <span class="reminder-card__note">{{ item.note }}</span>
+        </div>
+
+        <strong class="reminder-card__title">{{ item.title }}</strong>
+        <p class="reminder-card__value">{{ item.value }}</p>
+        <p class="reminder-card__description">{{ item.description }}</p>
+      </article>
+    </div>
   </PageSection>
 </template>
 
 <style scoped lang="scss">
-.dashboard-grid {
+.dashboard-grid__metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .content-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 20px;
 }
 
-.summary-card {
-  height: 100%;
-  border: 1px solid var(--theme-border);
-  border-radius: 20px;
-  background: var(--theme-surface-muted);
-  box-shadow: var(--theme-shadow-soft);
+.dashboard-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  border: 1px dashed #e7ecf1;
+  border-radius: 10px;
+  background: #fafbfd;
+  text-align: center;
 }
 
-.summary-card p {
-  margin-top: 10px;
+.dashboard-empty .el-icon {
+  color: #9aa5b4;
+  font-size: 24px;
+}
+
+.dashboard-empty strong {
+  color: var(--theme-foreground);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dashboard-empty p {
   color: var(--theme-foreground-secondary);
+  font-size: 13px;
 }
 
-.empty-block {
+.dashboard-alert-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.reminder-card {
+  padding: 18px 18px 16px;
+  border: 1px solid #edf1f5;
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+
+.reminder-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.reminder-card__icon {
   display: grid;
   place-items: center;
-  min-height: 220px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef3f8;
+  color: #3f5e7a;
+}
+
+.reminder-card[data-tone='warning'] .reminder-card__icon {
+  background: #faf4eb;
+  color: #a78457;
+}
+
+.reminder-card[data-tone='info'] .reminder-card__icon {
+  background: #f3f5f7;
+  color: #7b8794;
+}
+
+.reminder-card__note {
+  color: var(--theme-foreground-tertiary);
+  font-size: 12px;
+}
+
+.reminder-card__title {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--theme-foreground);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.reminder-card__value {
+  margin-bottom: 8px;
+  color: var(--theme-foreground);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.reminder-card__description {
   color: var(--theme-foreground-secondary);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 @media (max-width: 1440px) {
-  .dashboard-grid {
+  .dashboard-grid__metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .content-grid {
+  .content-grid,
+  .dashboard-alert-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .dashboard-grid {
+  .dashboard-grid__metrics {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .dashboard-empty {
+    min-height: 260px;
   }
 }
 </style>

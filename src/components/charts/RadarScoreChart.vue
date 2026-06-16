@@ -17,21 +17,31 @@ function renderChart() {
     return
   }
 
-  const accent = getThemeCssVar('--theme-accent', '#cc7d5e')
-  const accentGhost = getThemeCssVar('--theme-accent-ghost-strong', 'rgba(204, 125, 94, 0.28)')
-  const accentSoft = getThemeCssVar('--theme-accent-soft', '#e7c8bb')
-  const foregroundSecondary = getThemeCssVar('--theme-foreground-secondary', '#6f665f')
-  const border = getThemeCssVar('--theme-border', 'rgba(45, 45, 43, 0.08)')
+  const accent = getThemeCssVar('--theme-accent', '#4b6584')
+  const accentGhost = getThemeCssVar('--theme-accent-ghost-strong', 'rgba(75, 101, 132, 0.18)')
+  const accentSoft = getThemeCssVar('--theme-accent-soft', '#dbe5ef')
+  const foreground = getThemeCssVar('--theme-foreground', '#2f3542')
+  const foregroundSecondary = getThemeCssVar('--theme-foreground-secondary', '#7b8794')
+  const border = getThemeCssVar('--theme-border', '#e5eaf0')
 
   chart ??= echarts.init(chartRef.value)
   chart.setOption({
+    tooltip: {
+      backgroundColor: '#ffffff',
+      borderColor: border,
+      borderWidth: 1,
+      textStyle: {
+        color: foreground,
+      },
+      extraCssText: 'box-shadow: 0 10px 24px rgba(47,53,66,0.08); border-radius: 10px;',
+    },
     textStyle: {
       color: foregroundSecondary,
       fontFamily: 'Geist, PingFang SC, Microsoft YaHei, sans-serif',
     },
     radar: {
       indicator: props.indicators,
-      radius: '62%',
+      radius: '64%',
       splitLine: {
         lineStyle: {
           color: border,
@@ -49,6 +59,7 @@ function renderChart() {
       },
       name: {
         color: foregroundSecondary,
+        fontSize: 13,
       },
     },
     series: [
@@ -66,6 +77,8 @@ function renderChart() {
             },
             itemStyle: {
               color: accent,
+              borderColor: '#ffffff',
+              borderWidth: 2,
             },
           },
         ],

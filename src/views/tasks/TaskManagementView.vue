@@ -24,6 +24,65 @@ import type {
 } from '@/types/api'
 import { formatDate, formatPercent } from '@/utils/format'
 
+const TEXT = {
+  pageTitle: '\u4efb\u52a1\u7ba1\u7406',
+  pageDescription: '\u56f4\u7ed5\u5468\u4efb\u52a1\u3001\u8d23\u4efb\u4eba\u3001\u72b6\u6001\u6d41\u8f6c\u548c\u8fdb\u5ea6\u8bb0\u5f55\u5f62\u6210\u95ed\u73af\u3002',
+  weekPlaceholder: '\u5468\u6b21\uff0c\u5982 2026-W24',
+  allProjects: '\u5168\u90e8\u9879\u76ee',
+  allAssignees: '\u5168\u90e8\u8d23\u4efb\u4eba',
+  allStatuses: '\u5168\u90e8\u72b6\u6001',
+  allPriorities: '\u5168\u90e8\u4f18\u5148\u7ea7',
+  search: '\u67e5\u8be2',
+  reset: '\u91cd\u7f6e',
+  createTask: '\u65b0\u5efa\u4efb\u52a1',
+  emptyHint: '\u5f53\u524d\u6682\u65e0\u8865\u5145\u8bf4\u660e\uff0c\u53ef\u901a\u8fc7\u72b6\u6001\u66f4\u65b0\u6216\u8fdb\u5ea6\u8bb0\u5f55\u7ee7\u7eed\u5b8c\u5584\u3002',
+  noProject: '\u672a\u5173\u8054\u9879\u76ee',
+  projectLabel: '\u6240\u5c5e\u9879\u76ee',
+  assigneeLabel: '\u8d23\u4efb\u4eba',
+  weekLabel: '\u5468\u6b21',
+  deadlineLabel: '\u622a\u6b62\u65e5\u671f',
+  planRangeLabel: '\u8ba1\u5212\u5468\u671f',
+  taskProgress: '\u4efb\u52a1\u8fdb\u5ea6',
+  edit: '\u7f16\u8f91',
+  updateStatus: '\u66f4\u65b0\u72b6\u6001',
+  progressRecord: '\u8fdb\u5ea6\u8bb0\u5f55',
+  emptyTasks: '\u6682\u65e0\u4efb\u52a1\u6570\u636e\uff0c\u8c03\u6574\u7b5b\u9009\u6761\u4ef6\u540e\u518d\u8bd5\u8bd5\u3002',
+  editTask: '\u7f16\u8f91\u4efb\u52a1',
+  taskTitle: '\u4efb\u52a1\u6807\u9898',
+  selectAssignee: '\u8bf7\u9009\u62e9\u8d23\u4efb\u4eba',
+  optional: '\u53ef\u9009',
+  priorityLabel: '\u4f18\u5148\u7ea7',
+  weekIdLabel: '\u5468\u6b21',
+  weekIdPlaceholder: '\u4f8b\u5982 2026-W24',
+  planStartLabel: '\u8ba1\u5212\u5f00\u59cb',
+  planEndLabel: '\u8ba1\u5212\u7ed3\u675f',
+  issueDescLabel: '\u95ee\u9898\u4e0e\u5907\u6ce8',
+  cancel: '\u53d6\u6d88',
+  save: '\u4fdd\u5b58',
+  statusDialogTitle: '\u66f4\u65b0\u4efb\u52a1\u72b6\u6001',
+  taskStatusLabel: '\u4efb\u52a1\u72b6\u6001',
+  progressPercentLabel: '\u8fdb\u5ea6\u767e\u5206\u6bd4',
+  issueExplainLabel: '\u95ee\u9898\u8bf4\u660e',
+  progressDrawerTitle: '\u4efb\u52a1\u8fdb\u5ea6\u8bb0\u5f55',
+  currentTask: '\u5f53\u524d\u4efb\u52a1\uff1a',
+  progressCommentLabel: '\u8fdb\u5ea6\u5907\u6ce8',
+  addProgress: '\u65b0\u589e\u8fdb\u5ea6\u8bb0\u5f55',
+  progressPrefix: '\u8fdb\u5ea6\uff1a',
+  commentPrefix: '\u5907\u6ce8\uff1a',
+  issuePrefix: '\u95ee\u9898\uff1a',
+  ruleTaskTitle: '\u8bf7\u8f93\u5165\u4efb\u52a1\u6807\u9898',
+  ruleAssignee: '\u8bf7\u9009\u62e9\u8d23\u4efb\u4eba',
+  rulePriority: '\u8bf7\u9009\u62e9\u4f18\u5148\u7ea7',
+  ruleWeekNo: '\u8bf7\u8f93\u5165\u5468\u6b21\u6807\u8bc6',
+  ruleProgressRate: '\u8bf7\u586b\u5199\u8fdb\u5ea6\u767e\u5206\u6bd4',
+  ruleProgressComment: '\u8bf7\u586b\u5199\u8fdb\u5ea6\u8bf4\u660e',
+  messageTaskUpdated: '\u4efb\u52a1\u5df2\u66f4\u65b0',
+  messageTaskCreated: '\u4efb\u52a1\u5df2\u521b\u5efa',
+  messageStatusUpdated: '\u4efb\u52a1\u72b6\u6001\u5df2\u66f4\u65b0',
+  messageProgressAdded: '\u8fdb\u5ea6\u8bb0\u5f55\u5df2\u65b0\u589e',
+  dash: '-',
+} as const
+
 const filters = reactive({
   weekNo: '',
   projectId: undefined as number | undefined,
@@ -72,10 +131,10 @@ const form = reactive({
 })
 
 const rules = {
-  title: [{ required: true, message: '请输入任务标题', trigger: 'blur' }],
-  assigneeId: [{ required: true, message: '请选择责任人', trigger: 'change' }],
-  priority: [{ required: true, message: '请选择优先级', trigger: 'change' }],
-  weekNo: [{ required: true, message: '请输入周次标识', trigger: 'blur' }],
+  title: [{ required: true, message: TEXT.ruleTaskTitle, trigger: 'blur' }],
+  assigneeId: [{ required: true, message: TEXT.ruleAssignee, trigger: 'change' }],
+  priority: [{ required: true, message: TEXT.rulePriority, trigger: 'change' }],
+  weekNo: [{ required: true, message: TEXT.ruleWeekNo, trigger: 'blur' }],
 }
 
 const statusDialogVisible = ref(false)
@@ -96,12 +155,11 @@ const progressForm = reactive({
 })
 
 const progressRules = {
-  progressRate: [{ required: true, message: '请填写进度百分比', trigger: 'change' }],
-  comment: [{ required: true, message: '请填写进度说明', trigger: 'blur' }],
+  progressRate: [{ required: true, message: TEXT.ruleProgressRate, trigger: 'change' }],
+  comment: [{ required: true, message: TEXT.ruleProgressComment, trigger: 'blur' }],
 }
 
 const progressQuery = useTaskProgressQuery(computed(() => progressTask.value?.id ?? null))
-
 const tableData = computed(() => tasksQuery.data.value?.records ?? [])
 
 function getTaskStatusMeta(status: TaskStatus) {
@@ -176,7 +234,7 @@ async function submitTask() {
       taskId: editingTask.value.id,
       payload,
     })
-    ElMessage.success('任务已更新')
+    ElMessage.success(TEXT.messageTaskUpdated)
   } else {
     const payload: CreateTaskRequest = {
       title: form.title,
@@ -191,7 +249,7 @@ async function submitTask() {
     }
 
     await createTaskMutation.mutateAsync(payload)
-    ElMessage.success('任务已创建')
+    ElMessage.success(TEXT.messageTaskCreated)
   }
 
   dialogVisible.value = false
@@ -219,7 +277,7 @@ async function submitStatus() {
       issueDesc: statusForm.issueDesc || undefined,
     },
   })
-  ElMessage.success('任务状态已更新')
+  ElMessage.success(TEXT.messageStatusUpdated)
   statusDialogVisible.value = false
 }
 
@@ -246,17 +304,17 @@ async function submitProgress() {
     },
   })
 
-  ElMessage.success('进度记录已新增')
+  ElMessage.success(TEXT.messageProgressAdded)
   progressForm.comment = ''
 }
 </script>
 
 <template>
-  <PageSection title="任务管理" description="围绕周任务、责任人、状态流转和进度记录形成闭环。">
+  <PageSection :title="TEXT.pageTitle" :description="TEXT.pageDescription">
     <div class="page-toolbar">
       <div class="page-toolbar__filters">
-        <el-input v-model="filters.weekNo" placeholder="周次，如 2026-W24" clearable style="max-width: 180px" />
-        <el-select v-model="filters.projectId" placeholder="全部项目" clearable style="width: 180px">
+        <el-input v-model="filters.weekNo" :placeholder="TEXT.weekPlaceholder" clearable />
+        <el-select v-model="filters.projectId" :placeholder="TEXT.allProjects" clearable>
           <el-option
             v-for="item in projectOptionsQuery.data.value?.records ?? []"
             :key="item.id"
@@ -264,7 +322,7 @@ async function submitProgress() {
             :value="item.id"
           />
         </el-select>
-        <el-select v-model="filters.assigneeId" placeholder="全部责任人" clearable style="width: 180px">
+        <el-select v-model="filters.assigneeId" :placeholder="TEXT.allAssignees" clearable>
           <el-option
             v-for="item in userOptionsQuery.data.value?.records ?? []"
             :key="item.id"
@@ -272,56 +330,88 @@ async function submitProgress() {
             :value="item.id"
           />
         </el-select>
-        <el-select v-model="filters.status" placeholder="全部状态" clearable style="width: 160px">
+        <el-select v-model="filters.status" :placeholder="TEXT.allStatuses" clearable>
           <el-option v-for="item in taskStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
-        <el-select v-model="filters.priority" placeholder="全部优先级" clearable style="width: 160px">
+        <el-select v-model="filters.priority" :placeholder="TEXT.allPriorities" clearable>
           <el-option v-for="item in priorityOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
-        <el-button type="primary" @click="pagination.pageNo = 1">查询</el-button>
-        <el-button @click="resetFilters">重置</el-button>
       </div>
 
       <div class="page-toolbar__actions">
-        <el-button type="primary" @click="openCreateDialog">新建任务</el-button>
+        <el-button type="primary" @click="pagination.pageNo = 1">{{ TEXT.search }}</el-button>
+        <el-button @click="resetFilters">{{ TEXT.reset }}</el-button>
+        <el-button type="primary" plain @click="openCreateDialog">{{ TEXT.createTask }}</el-button>
       </div>
     </div>
 
-    <el-table v-loading="tasksQuery.isLoading.value" :data="tableData">
-      <el-table-column prop="title" label="任务标题" min-width="220" />
-      <el-table-column prop="projectName" label="所属项目" min-width="160" />
-      <el-table-column prop="assigneeName" label="责任人" min-width="120" />
-      <el-table-column label="状态" width="110">
-        <template #default="{ row }">
-          <StatusTag :meta="getTaskStatusMeta(row.status)" />
-        </template>
-      </el-table-column>
-      <el-table-column label="优先级" width="110">
-        <template #default="{ row }">
-          <StatusTag :meta="getPriorityStatusMeta(row.priority)" />
-        </template>
-      </el-table-column>
-      <el-table-column prop="weekNo" label="周次" min-width="110" />
-      <el-table-column label="进度" width="110">
-        <template #default="{ row }">
-          {{ formatPercent(row.progressRate) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="截止日期" min-width="120">
-        <template #default="{ row }">
-          {{ formatDate(row.deadline) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" min-width="220" fixed="right">
-        <template #default="{ row }">
-          <div class="table-ops">
-            <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
-            <el-button link @click="openStatusDialog(row)">更新状态</el-button>
-            <el-button link @click="openProgressDrawer(row)">进度记录</el-button>
+    <div v-loading="tasksQuery.isLoading.value" class="task-board">
+      <template v-if="tableData.length">
+        <article v-for="row in tableData" :key="row.id" class="task-card">
+          <div class="task-card__header">
+            <div class="task-card__title-wrap">
+              <h3 class="task-card__title">{{ row.title }}</h3>
+              <p class="task-card__subtitle">
+                {{ row.issueDesc || TEXT.emptyHint }}
+              </p>
+            </div>
+
+            <div class="task-card__tags">
+              <StatusTag :meta="getTaskStatusMeta(row.status)" />
+              <StatusTag :meta="getPriorityStatusMeta(row.priority)" />
+            </div>
           </div>
-        </template>
-      </el-table-column>
-    </el-table>
+
+          <div class="task-card__meta">
+            <div class="task-meta-item">
+              <span class="task-meta-item__label">{{ TEXT.projectLabel }}</span>
+              <strong>{{ row.projectName || TEXT.noProject }}</strong>
+            </div>
+            <div class="task-meta-item">
+              <span class="task-meta-item__label">{{ TEXT.assigneeLabel }}</span>
+              <strong>{{ row.assigneeName || TEXT.dash }}</strong>
+            </div>
+            <div class="task-meta-item">
+              <span class="task-meta-item__label">{{ TEXT.weekLabel }}</span>
+              <strong>{{ row.weekNo || TEXT.dash }}</strong>
+            </div>
+            <div class="task-meta-item">
+              <span class="task-meta-item__label">{{ TEXT.deadlineLabel }}</span>
+              <strong>{{ formatDate(row.deadline) }}</strong>
+            </div>
+            <div class="task-meta-item">
+              <span class="task-meta-item__label">{{ TEXT.planRangeLabel }}</span>
+              <strong>{{ formatDate(row.planStartDate) }} - {{ formatDate(row.planEndDate) }}</strong>
+            </div>
+          </div>
+
+          <div class="task-card__footer">
+            <div class="task-progress">
+              <div class="task-progress__head">
+                <span>{{ TEXT.taskProgress }}</span>
+                <strong>{{ formatPercent(row.progressRate) }}</strong>
+              </div>
+              <el-progress
+                :percentage="row.progressRate ?? 0"
+                :show-text="false"
+                :stroke-width="8"
+                color="#4B6584"
+              />
+            </div>
+
+            <div class="task-card__actions">
+              <el-button class="task-action-button" @click="openEditDialog(row)">{{ TEXT.edit }}</el-button>
+              <el-button class="task-action-button" @click="openStatusDialog(row)">{{ TEXT.updateStatus }}</el-button>
+              <el-button class="task-action-button task-action-button--primary" @click="openProgressDrawer(row)">
+                {{ TEXT.progressRecord }}
+              </el-button>
+            </div>
+          </div>
+        </article>
+      </template>
+
+      <el-empty v-else :description="TEXT.emptyTasks" />
+    </div>
 
     <div class="pagination-bar">
       <el-pagination
@@ -334,17 +424,17 @@ async function submitProgress() {
     </div>
   </PageSection>
 
-  <el-dialog v-model="dialogVisible" :title="editingTask ? '编辑任务' : '新建任务'" width="820px" @closed="resetForm">
+  <el-dialog v-model="dialogVisible" :title="editingTask ? TEXT.editTask : TEXT.createTask" width="820px" @closed="resetForm">
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <el-row :gutter="16">
         <el-col :span="12">
-          <el-form-item label="任务标题" prop="title">
+          <el-form-item :label="TEXT.taskTitle" prop="title">
             <el-input v-model="form.title" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="责任人" prop="assigneeId">
-            <el-select v-model="form.assigneeId" placeholder="请选择责任人">
+          <el-form-item :label="TEXT.assigneeLabel" prop="assigneeId">
+            <el-select v-model="form.assigneeId" :placeholder="TEXT.selectAssignee">
               <el-option
                 v-for="item in userOptionsQuery.data.value?.records ?? []"
                 :key="item.id"
@@ -358,8 +448,8 @@ async function submitProgress() {
 
       <el-row :gutter="16">
         <el-col :span="8">
-          <el-form-item label="所属项目">
-            <el-select v-model="form.projectId" clearable placeholder="可选">
+          <el-form-item :label="TEXT.projectLabel">
+            <el-select v-model="form.projectId" clearable :placeholder="TEXT.optional">
               <el-option
                 v-for="item in projectOptionsQuery.data.value?.records ?? []"
                 :key="item.id"
@@ -370,96 +460,96 @@ async function submitProgress() {
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="优先级" prop="priority">
+          <el-form-item :label="TEXT.priorityLabel" prop="priority">
             <el-select v-model="form.priority">
               <el-option v-for="item in priorityOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="周次" prop="weekNo">
-            <el-input v-model="form.weekNo" :disabled="Boolean(editingTask)" placeholder="例如 2026-W24" />
+          <el-form-item :label="TEXT.weekIdLabel" prop="weekNo">
+            <el-input v-model="form.weekNo" :disabled="Boolean(editingTask)" :placeholder="TEXT.weekIdPlaceholder" />
           </el-form-item>
         </el-col>
       </el-row>
 
       <el-row :gutter="16">
         <el-col :span="8">
-          <el-form-item label="计划开始">
+          <el-form-item :label="TEXT.planStartLabel">
             <el-date-picker v-model="form.planStartDate" type="date" value-format="YYYY-MM-DD" class="w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="计划结束">
+          <el-form-item :label="TEXT.planEndLabel">
             <el-date-picker v-model="form.planEndDate" type="date" value-format="YYYY-MM-DD" class="w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="8">
-          <el-form-item label="截止日期">
+          <el-form-item :label="TEXT.deadlineLabel">
             <el-date-picker v-model="form.deadline" type="date" value-format="YYYY-MM-DD" class="w-full" />
           </el-form-item>
         </el-col>
       </el-row>
 
-      <el-form-item label="问题与备注">
+      <el-form-item :label="TEXT.issueDescLabel">
         <el-input v-model="form.issueDesc" type="textarea" :rows="4" maxlength="300" show-word-limit />
       </el-form-item>
     </el-form>
 
     <template #footer>
       <el-space>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">{{ TEXT.cancel }}</el-button>
         <el-button
           type="primary"
           :loading="createTaskMutation.isPending.value || updateTaskMutation.isPending.value"
           @click="submitTask"
         >
-          保存
+          {{ TEXT.save }}
         </el-button>
       </el-space>
     </template>
   </el-dialog>
 
-  <el-dialog v-model="statusDialogVisible" title="更新任务状态" width="460px">
+  <el-dialog v-model="statusDialogVisible" :title="TEXT.statusDialogTitle" width="460px">
     <el-form label-position="top">
-      <el-form-item label="任务状态">
+      <el-form-item :label="TEXT.taskStatusLabel">
         <el-select v-model="statusForm.status">
           <el-option v-for="item in taskStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="进度百分比">
+      <el-form-item :label="TEXT.progressPercentLabel">
         <el-input-number v-model="statusForm.progressRate" :min="0" :max="100" class="w-full" />
       </el-form-item>
-      <el-form-item label="问题说明">
+      <el-form-item :label="TEXT.issueExplainLabel">
         <el-input v-model="statusForm.issueDesc" type="textarea" :rows="3" maxlength="200" show-word-limit />
       </el-form-item>
     </el-form>
 
     <template #footer>
       <el-space>
-        <el-button @click="statusDialogVisible = false">取消</el-button>
+        <el-button @click="statusDialogVisible = false">{{ TEXT.cancel }}</el-button>
         <el-button type="primary" :loading="updateTaskStatusMutation.isPending.value" @click="submitStatus">
-          保存
+          {{ TEXT.save }}
         </el-button>
       </el-space>
     </template>
   </el-dialog>
 
-  <el-drawer v-model="progressDrawerVisible" title="任务进度记录" size="520px">
-    <div class="mb-16 text-muted">当前任务：{{ progressTask?.title ?? '-' }}</div>
+  <el-drawer v-model="progressDrawerVisible" :title="TEXT.progressDrawerTitle" size="520px">
+    <div class="drawer-task-title">{{ TEXT.currentTask }}{{ progressTask?.title ?? TEXT.dash }}</div>
 
     <el-form ref="progressFormRef" :model="progressForm" :rules="progressRules" label-position="top" class="mb-16">
-      <el-form-item label="进度百分比" prop="progressRate">
+      <el-form-item :label="TEXT.progressPercentLabel" prop="progressRate">
         <el-input-number v-model="progressForm.progressRate" :min="0" :max="100" class="w-full" />
       </el-form-item>
-      <el-form-item label="问题说明">
+      <el-form-item :label="TEXT.issueExplainLabel">
         <el-input v-model="progressForm.issueDesc" type="textarea" :rows="3" maxlength="200" show-word-limit />
       </el-form-item>
-      <el-form-item label="进度备注" prop="comment">
+      <el-form-item :label="TEXT.progressCommentLabel" prop="comment">
         <el-input v-model="progressForm.comment" type="textarea" :rows="3" maxlength="300" show-word-limit />
       </el-form-item>
       <el-button type="primary" :loading="createTaskProgressMutation.isPending.value" @click="submitProgress">
-        新增进度记录
+        {{ TEXT.addProgress }}
       </el-button>
     </el-form>
 
@@ -470,10 +560,10 @@ async function submitProgress() {
         :timestamp="formatDate(item.updateTime)"
         placement="top"
       >
-        <el-card shadow="never">
-          <p>进度：{{ formatPercent(item.progressRate) }}</p>
-          <p class="text-muted">备注：{{ item.comment || '-' }}</p>
-          <p class="text-muted">问题：{{ item.issueDesc || '-' }}</p>
+        <el-card shadow="never" class="progress-record-card">
+          <p>{{ TEXT.progressPrefix }}{{ formatPercent(item.progressRate) }}</p>
+          <p class="text-muted">{{ TEXT.commentPrefix }}{{ item.comment || TEXT.dash }}</p>
+          <p class="text-muted">{{ TEXT.issuePrefix }}{{ item.issueDesc || TEXT.dash }}</p>
         </el-card>
       </el-timeline-item>
     </el-timeline>
@@ -484,35 +574,228 @@ async function submitProgress() {
 .page-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 .page-toolbar__filters,
-.page-toolbar__actions,
-.table-ops {
+.page-toolbar__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.page-toolbar__filters :deep(.el-input),
+.page-toolbar__filters :deep(.el-select) {
+  width: 180px;
+}
+
+.task-board {
+  display: grid;
+  gap: 16px;
+  min-height: 280px;
+}
+
+.task-card {
+  border: 1px solid var(--theme-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(63, 94, 122, 0.05);
+  padding: 20px 22px;
+}
+
+.task-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(229, 234, 240, 0.9);
+}
+
+.task-card__title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.task-card__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #2f3542;
+}
+
+.task-card__subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #7b8794;
+}
+
+.task-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.task-card__meta {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px 16px;
+  padding: 18px 0;
+}
+
+.task-meta-item {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(229, 234, 240, 0.85);
+  border-radius: 12px;
+  background: #f9fbfd;
+}
+
+.task-meta-item__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #7b8794;
+}
+
+.task-meta-item strong {
+  display: block;
+  color: #2f3542;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.task-card__footer {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(229, 234, 240, 0.9);
+}
+
+.task-progress {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-progress__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #7b8794;
+}
+
+.task-progress__head strong {
+  font-size: 15px;
+  color: #2f3542;
+}
+
+.task-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.task-action-button {
+  min-width: 92px;
+  margin: 0;
+  border-color: #d8e1ea;
+  color: #4b6584;
+  background: #fff;
+}
+
+.task-action-button:hover {
+  border-color: #b9c7d6;
+  color: #3f5e7a;
+  background: #f7fafd;
+}
+
+.task-action-button--primary {
+  border-color: #c6d3e1;
+  background: #eef3f8;
 }
 
 .pagination-bar {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: 20px;
+}
+
+.drawer-task-title {
+  margin-bottom: 16px;
+  color: #7b8794;
+}
+
+.progress-record-card {
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+}
+
+.progress-record-card p {
+  margin: 0 0 8px;
+}
+
+.progress-record-card p:last-child {
+  margin-bottom: 0;
 }
 
 .text-muted {
   color: var(--theme-foreground-secondary);
 }
 
-@media (max-width: 768px) {
-  .page-toolbar {
+@media (max-width: 1280px) {
+  .task-card__meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .page-toolbar,
+  .task-card__header,
+  .task-card__footer {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .page-toolbar__actions,
+  .task-card__actions,
+  .task-card__tags {
+    justify-content: flex-start;
+  }
+
+  .task-card__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page-toolbar__filters :deep(.el-input),
+  .page-toolbar__filters :deep(.el-select),
+  .page-toolbar__actions :deep(.el-button) {
+    width: 100%;
+  }
+
+  .task-card {
+    padding: 16px;
+  }
+
+  .task-card__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .task-card__actions :deep(.el-button) {
+    width: 100%;
   }
 }
 </style>

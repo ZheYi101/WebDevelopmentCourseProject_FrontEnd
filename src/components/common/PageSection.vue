@@ -11,7 +11,6 @@ defineProps<{
       <div class="page-section__header">
         <div>
           <strong>{{ title }}</strong>
-          <p v-if="description">{{ description }}</p>
         </div>
         <slot name="extra" />
       </div>
@@ -23,8 +22,8 @@ defineProps<{
 <style scoped lang="scss">
 .page-section {
   border: 1px solid var(--theme-border);
-  border-radius: 20px;
-  background: var(--theme-surface);
+  border-radius: 12px;
+  background: var(--theme-surface-strong);
   box-shadow: var(--theme-shadow-soft);
 }
 
@@ -37,13 +36,7 @@ defineProps<{
 
 .page-section__header strong {
   display: block;
-  margin-bottom: 6px;
   font-size: 18px;
   color: var(--theme-foreground);
-}
-
-.page-section__header p {
-  color: var(--theme-foreground-secondary);
-  font-size: 14px;
 }
 </style>

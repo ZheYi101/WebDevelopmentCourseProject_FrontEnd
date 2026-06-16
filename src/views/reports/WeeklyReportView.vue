@@ -6,11 +6,60 @@ import { computed, reactive, ref } from 'vue'
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
 import { useMemberOptionsQuery } from '@/composables/use-reference-data'
-import { useCreateReportMutation, useReportsQuery, useReviewReportMutation, useUpdateReportMutation } from '@/composables/use-report-management'
+import {
+  useCreateReportMutation,
+  useReportsQuery,
+  useReviewReportMutation,
+  useUpdateReportMutation,
+} from '@/composables/use-report-management'
 import { weeklyReportStatusMetaMap, weeklyReportStatusOptions } from '@/constants/options'
 import { useAuthStore } from '@/stores/auth'
-import type { CreateWeeklyReportRequest, ReviewWeeklyReportRequest, WeeklyReport, WeeklyReportStatus } from '@/types/api'
+import type {
+  CreateWeeklyReportRequest,
+  ReviewWeeklyReportRequest,
+  WeeklyReport,
+  WeeklyReportStatus,
+} from '@/types/api'
 import { formatDateTime } from '@/utils/format'
+
+const TEXT = {
+  pageTitle: '\u5468\u62a5\u7ba1\u7406',
+  pageDescription: '\u56f4\u7ed5\u6210\u5458\u5468\u62a5\u7684\u63d0\u4ea4\u3001\u4fee\u6539\u548c\u8bc4\u5ba1\u5f62\u6210\u95ed\u73af\u3002',
+  weekPlaceholder: '\u5468\u6b21\uff0c\u5982 2026-W24',
+  allMembers: '\u5168\u90e8\u6210\u5458',
+  allStatuses: '\u5168\u90e8\u72b6\u6001',
+  search: '\u67e5\u8be2',
+  reset: '\u91cd\u7f6e',
+  createReport: '\u65b0\u5efa\u5468\u62a5',
+  member: '\u6210\u5458',
+  weekNo: '\u5468\u6b21',
+  status: '\u72b6\u6001',
+  summary: '\u672c\u5468\u603b\u7ed3',
+  nextPlan: '\u4e0b\u5468\u8ba1\u5212',
+  managerComment: '\u8bc4\u5ba1\u610f\u89c1',
+  updatedAt: '\u66f4\u65b0\u65f6\u95f4',
+  actions: '\u64cd\u4f5c',
+  edit: '\u7f16\u8f91',
+  review: '\u8bc4\u5ba1',
+  editReport: '\u7f16\u8f91\u5468\u62a5',
+  selectMember: '\u8bf7\u9009\u62e9\u6210\u5458',
+  weekExample: '\u4f8b\u5982 2026-W24',
+  cancel: '\u53d6\u6d88',
+  save: '\u4fdd\u5b58',
+  reviewDialogTitle: '\u5468\u62a5\u8bc4\u5ba1',
+  reviewResult: '\u8bc4\u5ba1\u7ed3\u679c',
+  approved: '\u901a\u8fc7',
+  returned: '\u9000\u56de',
+  submitReview: '\u63d0\u4ea4\u8bc4\u5ba1',
+  noComment: '-',
+  ruleMember: '\u8bf7\u9009\u62e9\u6210\u5458',
+  ruleWeekNo: '\u8bf7\u8f93\u5165\u5468\u6b21',
+  ruleSummary: '\u8bf7\u586b\u5199\u672c\u5468\u603b\u7ed3',
+  ruleNextPlan: '\u8bf7\u586b\u5199\u4e0b\u5468\u8ba1\u5212',
+  messageUpdated: '\u5468\u62a5\u5df2\u66f4\u65b0',
+  messageCreated: '\u5468\u62a5\u5df2\u521b\u5efa',
+  messageReviewed: '\u5468\u62a5\u8bc4\u5ba1\u5df2\u63d0\u4ea4',
+} as const
 
 const authStore = useAuthStore()
 const canReview = computed(() => authStore.hasAnyRole(['DEPT_MANAGER', 'TECH_DIRECTOR', 'GENERAL_MANAGER']))
@@ -51,10 +100,10 @@ const form = reactive({
 })
 
 const rules = {
-  memberId: [{ required: true, message: '请选择成员', trigger: 'change' }],
-  weekNo: [{ required: true, message: '请输入周次', trigger: 'blur' }],
-  summary: [{ required: true, message: '请填写本周总结', trigger: 'blur' }],
-  nextPlan: [{ required: true, message: '请填写下周计划', trigger: 'blur' }],
+  memberId: [{ required: true, message: TEXT.ruleMember, trigger: 'change' }],
+  weekNo: [{ required: true, message: TEXT.ruleWeekNo, trigger: 'blur' }],
+  summary: [{ required: true, message: TEXT.ruleSummary, trigger: 'blur' }],
+  nextPlan: [{ required: true, message: TEXT.ruleNextPlan, trigger: 'blur' }],
 }
 
 const reviewDialogVisible = ref(false)
@@ -114,7 +163,7 @@ async function submitReport() {
         nextPlan: form.nextPlan,
       },
     })
-    ElMessage.success('周报已更新')
+    ElMessage.success(TEXT.messageUpdated)
   } else {
     const payload: CreateWeeklyReportRequest = {
       memberId: form.memberId as number,
@@ -124,7 +173,7 @@ async function submitReport() {
     }
 
     await createReportMutation.mutateAsync(payload)
-    ElMessage.success('周报已创建')
+    ElMessage.success(TEXT.messageCreated)
   }
 
   dialogVisible.value = false
@@ -152,17 +201,17 @@ async function submitReview() {
     reportId: reviewTarget.value.id,
     payload,
   })
-  ElMessage.success('周报评审已提交')
+  ElMessage.success(TEXT.messageReviewed)
   reviewDialogVisible.value = false
 }
 </script>
 
 <template>
-  <PageSection title="周报管理" description="围绕成员周报的提交、修改和评审形成闭环。">
+  <PageSection :title="TEXT.pageTitle" :description="TEXT.pageDescription">
     <div class="page-toolbar">
       <div class="page-toolbar__filters">
-        <el-input v-model="filters.weekNo" placeholder="周次，如 2026-W24" clearable style="max-width: 180px" />
-        <el-select v-model="filters.memberId" placeholder="全部成员" clearable style="width: 180px">
+        <el-input v-model="filters.weekNo" :placeholder="TEXT.weekPlaceholder" clearable style="max-width: 180px" />
+        <el-select v-model="filters.memberId" :placeholder="TEXT.allMembers" clearable style="width: 180px">
           <el-option
             v-for="item in memberOptionsQuery.data.value?.records ?? []"
             :key="item.id"
@@ -170,46 +219,55 @@ async function submitReview() {
             :value="item.id"
           />
         </el-select>
-        <el-select v-model="filters.status" placeholder="全部状态" clearable style="width: 160px">
-          <el-option v-for="item in weeklyReportStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+        <el-select v-model="filters.status" :placeholder="TEXT.allStatuses" clearable style="width: 160px">
+          <el-option
+            v-for="item in weeklyReportStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
-        <el-button type="primary" @click="pagination.pageNo = 1">查询</el-button>
-        <el-button @click="resetFilters">重置</el-button>
+        <el-button type="primary" @click="pagination.pageNo = 1">{{ TEXT.search }}</el-button>
+        <el-button @click="resetFilters">{{ TEXT.reset }}</el-button>
       </div>
       <div class="page-toolbar__actions">
-        <el-button type="primary" @click="openCreateDialog">新建周报</el-button>
+        <el-button type="primary" @click="openCreateDialog">{{ TEXT.createReport }}</el-button>
       </div>
     </div>
 
     <el-table v-loading="reportsQuery.isLoading.value" :data="tableData">
-      <el-table-column prop="memberName" label="成员" min-width="120" />
-      <el-table-column prop="weekNo" label="周次" min-width="110" />
-      <el-table-column label="状态" width="110">
+      <el-table-column prop="memberName" :label="TEXT.member" min-width="120" />
+      <el-table-column prop="weekNo" :label="TEXT.weekNo" min-width="110" />
+      <el-table-column :label="TEXT.status" width="110">
         <template #default="{ row }">
           <StatusTag :meta="getReportStatusMeta(row.status)" />
         </template>
       </el-table-column>
-      <el-table-column label="本周总结" min-width="220" show-overflow-tooltip>
+      <el-table-column :label="TEXT.summary" min-width="220">
         <template #default="{ row }">
           <div class="line-clamp-2">{{ row.summary }}</div>
         </template>
       </el-table-column>
-      <el-table-column label="下周计划" min-width="220" show-overflow-tooltip>
+      <el-table-column :label="TEXT.nextPlan" min-width="220">
         <template #default="{ row }">
           <div class="line-clamp-2">{{ row.nextPlan }}</div>
         </template>
       </el-table-column>
-      <el-table-column prop="managerComment" label="评审意见" min-width="180" show-overflow-tooltip />
-      <el-table-column label="更新时间" min-width="180">
+      <el-table-column :label="TEXT.managerComment" min-width="180">
+        <template #default="{ row }">
+          <div class="line-clamp-2">{{ row.managerComment || TEXT.noComment }}</div>
+        </template>
+      </el-table-column>
+      <el-table-column :label="TEXT.updatedAt" min-width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.updatedAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" min-width="180" fixed="right">
+      <el-table-column :label="TEXT.actions" min-width="180" fixed="right">
         <template #default="{ row }">
           <div class="table-ops">
-            <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
-            <el-button v-if="canReview" link @click="openReviewDialog(row)">评审</el-button>
+            <el-button link type="primary" @click="openEditDialog(row)">{{ TEXT.edit }}</el-button>
+            <el-button v-if="canReview" link @click="openReviewDialog(row)">{{ TEXT.review }}</el-button>
           </div>
         </template>
       </el-table-column>
@@ -226,12 +284,12 @@ async function submitReview() {
     </div>
   </PageSection>
 
-  <el-dialog v-model="dialogVisible" :title="editingReport ? '编辑周报' : '新建周报'" width="760px" @closed="resetForm">
+  <el-dialog v-model="dialogVisible" :title="editingReport ? TEXT.editReport : TEXT.createReport" width="760px" @closed="resetForm">
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <el-row :gutter="16">
         <el-col :span="12">
-          <el-form-item label="成员" prop="memberId">
-            <el-select v-model="form.memberId" :disabled="Boolean(editingReport)" placeholder="请选择成员">
+          <el-form-item :label="TEXT.member" prop="memberId">
+            <el-select v-model="form.memberId" :disabled="Boolean(editingReport)" :placeholder="TEXT.selectMember">
               <el-option
                 v-for="item in memberOptionsQuery.data.value?.records ?? []"
                 :key="item.id"
@@ -242,51 +300,51 @@ async function submitReview() {
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="周次" prop="weekNo">
-            <el-input v-model="form.weekNo" :disabled="Boolean(editingReport)" placeholder="例如 2026-W24" />
+          <el-form-item :label="TEXT.weekNo" prop="weekNo">
+            <el-input v-model="form.weekNo" :disabled="Boolean(editingReport)" :placeholder="TEXT.weekExample" />
           </el-form-item>
         </el-col>
       </el-row>
-      <el-form-item label="本周总结" prop="summary">
+      <el-form-item :label="TEXT.summary" prop="summary">
         <el-input v-model="form.summary" type="textarea" :rows="4" maxlength="500" show-word-limit />
       </el-form-item>
-      <el-form-item label="下周计划" prop="nextPlan">
+      <el-form-item :label="TEXT.nextPlan" prop="nextPlan">
         <el-input v-model="form.nextPlan" type="textarea" :rows="4" maxlength="500" show-word-limit />
       </el-form-item>
     </el-form>
 
     <template #footer>
       <el-space>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">{{ TEXT.cancel }}</el-button>
         <el-button
           type="primary"
           :loading="createReportMutation.isPending.value || updateReportMutation.isPending.value"
           @click="submitReport"
         >
-          保存
+          {{ TEXT.save }}
         </el-button>
       </el-space>
     </template>
   </el-dialog>
 
-  <el-dialog v-model="reviewDialogVisible" title="周报评审" width="520px">
+  <el-dialog v-model="reviewDialogVisible" :title="TEXT.reviewDialogTitle" width="520px">
     <el-form label-position="top">
-      <el-form-item label="评审结果">
+      <el-form-item :label="TEXT.reviewResult">
         <el-radio-group v-model="reviewForm.status">
-          <el-radio-button label="REVIEWED">通过</el-radio-button>
-          <el-radio-button label="RETURNED">退回</el-radio-button>
+          <el-radio-button label="REVIEWED">{{ TEXT.approved }}</el-radio-button>
+          <el-radio-button label="RETURNED">{{ TEXT.returned }}</el-radio-button>
         </el-radio-group>
       </el-form-item>
-      <el-form-item label="评审意见">
+      <el-form-item :label="TEXT.managerComment">
         <el-input v-model="reviewForm.managerComment" type="textarea" :rows="4" maxlength="300" show-word-limit />
       </el-form-item>
     </el-form>
 
     <template #footer>
       <el-space>
-        <el-button @click="reviewDialogVisible = false">取消</el-button>
+        <el-button @click="reviewDialogVisible = false">{{ TEXT.cancel }}</el-button>
         <el-button type="primary" :loading="reviewReportMutation.isPending.value" @click="submitReview">
-          提交评审
+          {{ TEXT.submitReview }}
         </el-button>
       </el-space>
     </template>

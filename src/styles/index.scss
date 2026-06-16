@@ -16,9 +16,8 @@ body {
   font-family: $theme-font-ui;
   color: $theme-foreground;
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.96), transparent 24%),
-    radial-gradient(circle at right top, rgba(231, 200, 187, 0.4), transparent 20%),
-    linear-gradient(180deg, #fcfbf8 0%, $theme-background 48%, $theme-background-elevated 100%);
+    radial-gradient(circle at 50% 0, rgba(75, 101, 132, 0.06), transparent 26%),
+    linear-gradient(180deg, $theme-background 0%, $theme-background-elevated 100%);
 }
 
 code,
@@ -51,6 +50,8 @@ p {
 }
 
 .el-card {
+  border: 1px solid $theme-border;
+  border-radius: 12px;
   border-color: $theme-border;
   background: $theme-surface-strong;
   box-shadow: $theme-shadow-soft;
@@ -62,27 +63,28 @@ p {
 
 .el-table {
   --el-table-border-color: var(--theme-border);
-  --el-table-header-bg-color: #fbf6f1;
-  --el-table-tr-bg-color: rgba(255, 253, 249, 0.82);
-  --el-table-row-hover-bg-color: #f8efe8;
-  border-radius: 18px;
+  --el-table-header-bg-color: #f8fafc;
+  --el-table-tr-bg-color: #ffffff;
+  --el-table-row-hover-bg-color: #f8fbfd;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .el-menu-item {
-  margin: 4px 10px;
-  border-radius: 14px;
+  margin: 4px 12px;
+  border-radius: 10px;
 }
 
 .el-menu-item.is-active {
-  background: $theme-accent-ghost;
-  box-shadow: inset 0 0 0 1px $theme-accent-ghost-strong;
+  background: var(--theme-accent-muted);
+  box-shadow: inset 0 0 0 1px rgba(75, 101, 132, 0.08);
 }
 
 .el-input__wrapper,
 .el-select__wrapper,
 .el-textarea__inner {
   box-shadow: 0 0 0 1px $theme-border inset;
-  background: #fffdfa;
+  background: #ffffff;
 }
 
 .el-input__wrapper.is-focus,
@@ -90,11 +92,11 @@ p {
 .el-textarea__inner:focus {
   box-shadow:
     0 0 0 1px $theme-accent inset,
-    0 0 0 4px rgba(204, 125, 94, 0.08);
+    0 0 0 4px rgba(75, 101, 132, 0.08);
 }
 
 .el-button {
-  border-radius: 14px;
+  border-radius: 10px;
 }
 
 .el-button--default {
@@ -104,14 +106,27 @@ p {
 }
 
 .el-button--default:hover {
-  border-color: $theme-accent-soft;
+  border-color: #d4dde6;
   color: $theme-accent;
-  background: #fff8f3;
+  background: #f8fafc;
 }
 
 .el-dropdown-menu,
 .el-popper {
-  --el-bg-color-overlay: #fffdf9;
+  --el-bg-color-overlay: #ffffff;
+}
+
+.el-tag {
+  border-radius: 999px;
+}
+
+.el-dialog {
+  border-radius: 12px;
+}
+
+.el-pagination button,
+.el-pagination .el-pager li {
+  border-radius: 8px;
 }
 
 @media (max-width: 1440px) {
