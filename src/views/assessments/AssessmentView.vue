@@ -6,12 +6,14 @@ import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
 import { useAssessmentDetailQuery, useAssessmentsQuery, useFinalizeAssessmentMutation, useGenerateAssessmentsMutation, useScoreAssessmentMutation } from '@/composables/use-assessment-management'
 import { useMemberOptionsQuery, useTeamOptionsQuery } from '@/composables/use-reference-data'
+import { useTeamScope } from '@/composables/use-team-scope'
 import { assessmentScoreRoleOptions, assessmentStatusMetaMap, assessmentStatusOptions } from '@/constants/options'
 import { useAuthStore } from '@/stores/auth'
 import type { AssessmentStatus, MonthlyAssessment, RoleCode } from '@/types/api'
 import { formatDateTime, formatScore } from '@/utils/format'
 
 const authStore = useAuthStore()
+const { currentTeamId, shouldLimitToOwnTeam, isAccessibleTeamId } = useTeamScope()
 
 const filters = reactive({
   assessMonth: '',
@@ -27,16 +29,18 @@ const pagination = reactive({
 
 const queryParams = computed(() => ({
   assessMonth: filters.assessMonth || undefined,
-  teamId: filters.teamId,
+  teamId: shouldLimitToOwnTeam.value ? currentTeamId.value ?? undefined : filters.teamId,
   memberId: filters.memberId,
   status: filters.status,
-  pageNo: pagination.pageNo,
-  pageSize: pagination.pageSize,
+  pageNo: shouldLimitToOwnTeam.value ? 1 : pagination.pageNo,
+  pageSize: shouldLimitToOwnTeam.value ? 500 : pagination.pageSize,
 }))
 
 const assessmentsQuery = useAssessmentsQuery(queryParams)
 const teamOptionsQuery = useTeamOptionsQuery()
-const memberOptionsQuery = useMemberOptionsQuery()
+const memberOptionsQuery = useMemberOptionsQuery(
+  computed(() => (shouldLimitToOwnTeam.value && currentTeamId.value ? { teamId: currentTeamId.value } : {})),
+)
 const generateMutation = useGenerateAssessmentsMutation()
 const scoreMutation = useScoreAssessmentMutation()
 const finalizeMutation = useFinalizeAssessmentMutation()
@@ -54,10 +58,21 @@ const generateForm = reactive({
 
 const scoreDialogVisible = ref(false)
 const scoreTarget = ref<MonthlyAssessment | null>(null)
+const allowedScoreRoles = computed(() => {
+  const role = authStore.primaryRole
+
+  if (role && assessmentScoreRoleOptions.some((item) => item.value === role)) {
+    return [role] as RoleCode[]
+  }
+
+  return [] as RoleCode[]
+})
+const canScoreWithCurrentRole = computed(() => allowedScoreRoles.value.length > 0)
+const scoreRoleOptions = computed(() =>
+  assessmentScoreRoleOptions.filter((item) => allowedScoreRoles.value.includes(item.value)),
+)
 const scoreForm = reactive({
-  scorerRole: (authStore.primaryRole && assessmentScoreRoleOptions.some((item) => item.value === authStore.primaryRole)
-    ? authStore.primaryRole
-    : 'DEPT_MANAGER') as RoleCode,
+  scorerRole: (allowedScoreRoles.value[0] ?? 'DEPT_MANAGER') as RoleCode,
   rawScore: 80,
   comment: '',
 })
@@ -66,7 +81,36 @@ const finalizeDialogVisible = ref(false)
 const finalizeTarget = ref<MonthlyAssessment | null>(null)
 const finalizeComment = ref('')
 
-const tableData = computed(() => assessmentsQuery.data.value?.records ?? [])
+const teamOptions = computed(() => {
+  const rows = teamOptionsQuery.data.value?.records ?? []
+
+  if (!shouldLimitToOwnTeam.value) {
+    return rows
+  }
+
+  return rows.filter((item) => isAccessibleTeamId(item.id))
+})
+const accessibleMemberIds = computed(() => new Set((memberOptionsQuery.data.value?.records ?? []).map((item) => item.id)))
+const filteredAssessmentRows = computed(() => {
+  const rows = assessmentsQuery.data.value?.records ?? []
+
+  if (!shouldLimitToOwnTeam.value) {
+    return rows
+  }
+
+  return rows.filter((row) => isAccessibleTeamId(row.teamId) && accessibleMemberIds.value.has(row.memberId))
+})
+const tableData = computed(() => {
+  if (!shouldLimitToOwnTeam.value) {
+    return filteredAssessmentRows.value
+  }
+
+  const start = (pagination.pageNo - 1) * pagination.pageSize
+  return filteredAssessmentRows.value.slice(start, start + pagination.pageSize)
+})
+const total = computed(() =>
+  shouldLimitToOwnTeam.value ? filteredAssessmentRows.value.length : (assessmentsQuery.data.value?.total ?? 0),
+)
 
 function getAssessmentStatusMeta(status: AssessmentStatus) {
   return assessmentStatusMetaMap[status]
@@ -74,25 +118,34 @@ function getAssessmentStatusMeta(status: AssessmentStatus) {
 
 function resetFilters() {
   filters.assessMonth = ''
-  filters.teamId = undefined
+  filters.teamId = shouldLimitToOwnTeam.value ? currentTeamId.value ?? undefined : undefined
   filters.memberId = undefined
   filters.status = undefined
   pagination.pageNo = 1
 }
 
 function openDetail(row: MonthlyAssessment) {
+  if (shouldLimitToOwnTeam.value && !isAccessibleTeamId(row.teamId)) {
+    ElMessage.error('只能查看本团队的考核记录')
+    return
+  }
+
   detailTargetId.value = row.id
   detailDrawerVisible.value = true
 }
 
 function openGenerateDialog() {
   generateForm.assessMonth = generateForm.assessMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-  generateForm.teamId = undefined
+  generateForm.teamId = shouldLimitToOwnTeam.value ? currentTeamId.value ?? undefined : undefined
   generateForm.overwriteExisting = false
   generateDialogVisible.value = true
 }
 
 async function submitGenerate() {
+  if (shouldLimitToOwnTeam.value && !generateForm.teamId) {
+    generateForm.teamId = currentTeamId.value ?? undefined
+  }
+
   await generateMutation.mutateAsync({
     assessMonth: generateForm.assessMonth,
     teamId: generateForm.teamId,
@@ -103,18 +156,34 @@ async function submitGenerate() {
 }
 
 function openScoreDialog(row: MonthlyAssessment) {
+  if (shouldLimitToOwnTeam.value && !isAccessibleTeamId(row.teamId)) {
+    ElMessage.error('只能处理本团队的考核记录')
+    return
+  }
+
+  if (!canScoreWithCurrentRole.value) {
+    ElMessage.error('当前身份不允许提交该类评分')
+    return
+  }
+
   scoreTarget.value = row
-  scoreForm.scorerRole =
-    authStore.primaryRole && assessmentScoreRoleOptions.some((item) => item.value === authStore.primaryRole)
-      ? authStore.primaryRole
-      : 'DEPT_MANAGER'
+  scoreForm.scorerRole = allowedScoreRoles.value[0] ?? 'DEPT_MANAGER'
   scoreForm.rawScore = row.finalScore ?? row.deptManagerScore ?? row.techDirectorScore ?? row.generalManagerScore ?? 80
   scoreForm.comment = row.comment ?? ''
   scoreDialogVisible.value = true
 }
 
 async function submitScore() {
-  if (!scoreTarget.value) {
+  if (!scoreTarget.value || (shouldLimitToOwnTeam.value && !isAccessibleTeamId(scoreTarget.value.teamId))) {
+    if (scoreTarget.value) {
+      ElMessage.error('只能处理本团队的考核记录')
+    }
+
+    return
+  }
+
+  if (!allowedScoreRoles.value.includes(scoreForm.scorerRole)) {
+    ElMessage.error('只能提交与当前身份对应的评分')
     return
   }
 
@@ -131,13 +200,22 @@ async function submitScore() {
 }
 
 function openFinalizeDialog(row: MonthlyAssessment) {
+  if (shouldLimitToOwnTeam.value && !isAccessibleTeamId(row.teamId)) {
+    ElMessage.error('只能处理本团队的考核记录')
+    return
+  }
+
   finalizeTarget.value = row
   finalizeComment.value = row.comment ?? ''
   finalizeDialogVisible.value = true
 }
 
 async function submitFinalize() {
-  if (!finalizeTarget.value) {
+  if (!finalizeTarget.value || (shouldLimitToOwnTeam.value && !isAccessibleTeamId(finalizeTarget.value.teamId))) {
+    if (finalizeTarget.value) {
+      ElMessage.error('只能处理本团队的考核记录')
+    }
+
     return
   }
 
@@ -157,9 +235,9 @@ async function submitFinalize() {
     <div class="page-toolbar">
       <div class="page-toolbar__filters">
         <el-date-picker v-model="filters.assessMonth" type="month" value-format="YYYY-MM" placeholder="考核月份" />
-        <el-select v-model="filters.teamId" placeholder="全部团队" clearable style="width: 180px">
+        <el-select v-model="filters.teamId" :disabled="shouldLimitToOwnTeam" placeholder="全部团队" clearable style="width: 180px">
           <el-option
-            v-for="item in teamOptionsQuery.data.value?.records ?? []"
+            v-for="item in teamOptions"
             :key="item.id"
             :label="item.teamName"
             :value="item.id"
@@ -217,7 +295,7 @@ async function submitFinalize() {
         <template #default="{ row }">
           <div class="table-ops">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
-            <el-button link @click="openScoreDialog(row)">评分</el-button>
+            <el-button v-if="canScoreWithCurrentRole" link @click="openScoreDialog(row)">评分</el-button>
             <el-button link @click="openFinalizeDialog(row)">归档</el-button>
           </div>
         </template>
@@ -228,7 +306,7 @@ async function submitFinalize() {
       <el-pagination
         v-model:current-page="pagination.pageNo"
         v-model:page-size="pagination.pageSize"
-        :total="assessmentsQuery.data.value?.total ?? 0"
+        :total="total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
       />
@@ -241,9 +319,9 @@ async function submitFinalize() {
         <el-date-picker v-model="generateForm.assessMonth" type="month" value-format="YYYY-MM" class="w-full" />
       </el-form-item>
       <el-form-item label="指定团队">
-        <el-select v-model="generateForm.teamId" clearable placeholder="为空时生成全部团队">
+        <el-select v-model="generateForm.teamId" :disabled="shouldLimitToOwnTeam" clearable placeholder="为空时生成全部团队">
           <el-option
-            v-for="item in teamOptionsQuery.data.value?.records ?? []"
+            v-for="item in teamOptions"
             :key="item.id"
             :label="item.teamName"
             :value="item.id"
@@ -266,8 +344,8 @@ async function submitFinalize() {
   <el-dialog v-model="scoreDialogVisible" title="提交评分" width="460px">
     <el-form label-position="top">
       <el-form-item label="评分角色">
-        <el-select v-model="scoreForm.scorerRole">
-          <el-option v-for="item in assessmentScoreRoleOptions" :key="item.value" :label="item.label" :value="item.value" />
+        <el-select v-model="scoreForm.scorerRole" disabled>
+          <el-option v-for="item in scoreRoleOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
       <el-form-item label="分数">

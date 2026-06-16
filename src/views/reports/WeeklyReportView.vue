@@ -12,6 +12,7 @@ import {
   useReviewReportMutation,
   useUpdateReportMutation,
 } from '@/composables/use-report-management'
+import { useTeamScope } from '@/composables/use-team-scope'
 import { weeklyReportStatusMetaMap, weeklyReportStatusOptions } from '@/constants/options'
 import { useAuthStore } from '@/stores/auth'
 import type {
@@ -62,6 +63,7 @@ const TEXT = {
 } as const
 
 const authStore = useAuthStore()
+const { currentTeamId, shouldLimitToOwnTeam } = useTeamScope()
 const canReview = computed(() => authStore.hasAnyRole(['DEPT_MANAGER', 'TECH_DIRECTOR', 'GENERAL_MANAGER']))
 
 const filters = reactive({
@@ -79,12 +81,14 @@ const queryParams = computed(() => ({
   weekNo: filters.weekNo || undefined,
   memberId: filters.memberId,
   status: filters.status,
-  pageNo: pagination.pageNo,
-  pageSize: pagination.pageSize,
+  pageNo: shouldLimitToOwnTeam.value ? 1 : pagination.pageNo,
+  pageSize: shouldLimitToOwnTeam.value ? 500 : pagination.pageSize,
 }))
 
 const reportsQuery = useReportsQuery(queryParams)
-const memberOptionsQuery = useMemberOptionsQuery()
+const memberOptionsQuery = useMemberOptionsQuery(
+  computed(() => (shouldLimitToOwnTeam.value && currentTeamId.value ? { teamId: currentTeamId.value } : {})),
+)
 const createReportMutation = useCreateReportMutation()
 const updateReportMutation = useUpdateReportMutation()
 const reviewReportMutation = useReviewReportMutation()
@@ -113,7 +117,31 @@ const reviewForm = reactive({
   managerComment: '',
 })
 
-const tableData = computed(() => reportsQuery.data.value?.records ?? [])
+const accessibleMemberIds = computed(() => new Set((memberOptionsQuery.data.value?.records ?? []).map((item) => item.id)))
+const filteredReportRows = computed(() => {
+  const rows = reportsQuery.data.value?.records ?? []
+
+  if (!shouldLimitToOwnTeam.value) {
+    return rows
+  }
+
+  return rows.filter((row) => accessibleMemberIds.value.has(row.memberId))
+})
+const tableData = computed(() => {
+  if (!shouldLimitToOwnTeam.value) {
+    return filteredReportRows.value
+  }
+
+  const start = (pagination.pageNo - 1) * pagination.pageSize
+  return filteredReportRows.value.slice(start, start + pagination.pageSize)
+})
+const total = computed(() =>
+  shouldLimitToOwnTeam.value ? filteredReportRows.value.length : (reportsQuery.data.value?.total ?? 0),
+)
+
+function isReportAccessible(report: WeeklyReport) {
+  return !shouldLimitToOwnTeam.value || accessibleMemberIds.value.has(report.memberId)
+}
 
 function getReportStatusMeta(status: WeeklyReportStatus) {
   return weeklyReportStatusMetaMap[status]
@@ -141,6 +169,11 @@ function openCreateDialog() {
 }
 
 function openEditDialog(report: WeeklyReport) {
+  if (!isReportAccessible(report)) {
+    ElMessage.error('只能查看和维护本团队成员的周报')
+    return
+  }
+
   editingReport.value = report
   form.memberId = report.memberId
   form.weekNo = report.weekNo
@@ -155,7 +188,17 @@ async function submitReport() {
     return
   }
 
+  if (shouldLimitToOwnTeam.value && !accessibleMemberIds.value.has(form.memberId as number)) {
+    ElMessage.error('只能为本团队成员提交周报')
+    return
+  }
+
   if (editingReport.value) {
+    if (!isReportAccessible(editingReport.value)) {
+      ElMessage.error('只能查看和维护本团队成员的周报')
+      return
+    }
+
     await updateReportMutation.mutateAsync({
       reportId: editingReport.value.id,
       payload: {
@@ -181,6 +224,11 @@ async function submitReport() {
 }
 
 function openReviewDialog(report: WeeklyReport) {
+  if (!isReportAccessible(report)) {
+    ElMessage.error('只能评审本团队成员的周报')
+    return
+  }
+
   reviewTarget.value = report
   reviewForm.status = report.status === 'RETURNED' ? 'RETURNED' : 'REVIEWED'
   reviewForm.managerComment = report.managerComment ?? ''
@@ -188,7 +236,11 @@ function openReviewDialog(report: WeeklyReport) {
 }
 
 async function submitReview() {
-  if (!reviewTarget.value) {
+  if (!reviewTarget.value || !isReportAccessible(reviewTarget.value)) {
+    if (reviewTarget.value) {
+      ElMessage.error('只能评审本团队成员的周报')
+    }
+
     return
   }
 
@@ -277,7 +329,7 @@ async function submitReview() {
       <el-pagination
         v-model:current-page="pagination.pageNo"
         v-model:page-size="pagination.pageSize"
-        :total="reportsQuery.data.value?.total ?? 0"
+        :total="total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
       />

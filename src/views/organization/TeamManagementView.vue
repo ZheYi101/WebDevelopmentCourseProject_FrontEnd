@@ -15,6 +15,7 @@ import {
   useUpdateTeamMutation,
 } from '@/composables/use-organization-management'
 import { useTeamOptionsQuery, useUserOptionsQuery } from '@/composables/use-reference-data'
+import { useTeamScope } from '@/composables/use-team-scope'
 import { memberStatusMetaMap, memberStatusOptions, teamStatusMetaMap, teamStatusOptions } from '@/constants/options'
 import type {
   CreateMemberRequest,
@@ -29,6 +30,7 @@ import type {
 import { formatDate, formatDateTime } from '@/utils/format'
 
 const activeTab = ref<'teams' | 'members'>('teams')
+const { currentTeamId, shouldLimitToOwnTeam, isAccessibleTeamId } = useTeamScope()
 
 const teamFilters = reactive({
   keyword: '',
@@ -55,18 +57,18 @@ const teamsQuery = useTeamsQuery(
   computed(() => ({
     keyword: teamFilters.keyword || undefined,
     status: teamFilters.status,
-    pageNo: teamPagination.pageNo,
-    pageSize: teamPagination.pageSize,
+    pageNo: shouldLimitToOwnTeam.value ? 1 : teamPagination.pageNo,
+    pageSize: shouldLimitToOwnTeam.value ? 500 : teamPagination.pageSize,
   })),
 )
 
 const membersQuery = useMembersQuery(
   computed(() => ({
     keyword: memberFilters.keyword || undefined,
-    teamId: memberFilters.teamId,
+    teamId: shouldLimitToOwnTeam.value ? currentTeamId.value ?? undefined : memberFilters.teamId,
     status: memberFilters.status,
-    pageNo: memberPagination.pageNo,
-    pageSize: memberPagination.pageSize,
+    pageNo: shouldLimitToOwnTeam.value ? 1 : memberPagination.pageNo,
+    pageSize: shouldLimitToOwnTeam.value ? 500 : memberPagination.pageSize,
   })),
 )
 
@@ -111,8 +113,64 @@ const memberRules = {
   name: [{ required: true, message: '请输入成员姓名', trigger: 'blur' }],
 }
 
-const teamRows = computed(() => teamsQuery.data.value?.records ?? [])
-const memberRows = computed(() => membersQuery.data.value?.records ?? [])
+const filteredManagerOptions = computed(() => {
+  const rows = managerOptionsQuery.data.value?.records ?? []
+
+  if (!shouldLimitToOwnTeam.value) {
+    return rows
+  }
+
+  return rows.filter((item) => isAccessibleTeamId(item.teamId))
+})
+const filteredTeamOptions = computed(() => {
+  const rows = teamOptionsQuery.data.value?.records ?? []
+
+  if (!shouldLimitToOwnTeam.value) {
+    return rows
+  }
+
+  return rows.filter((item) => isAccessibleTeamId(item.id))
+})
+const filteredTeamRows = computed(() => {
+  const rows = teamsQuery.data.value?.records ?? []
+
+  if (!shouldLimitToOwnTeam.value) {
+    return rows
+  }
+
+  return rows.filter((item) => isAccessibleTeamId(item.id))
+})
+const teamRows = computed(() => {
+  if (!shouldLimitToOwnTeam.value) {
+    return filteredTeamRows.value
+  }
+
+  const start = (teamPagination.pageNo - 1) * teamPagination.pageSize
+  return filteredTeamRows.value.slice(start, start + teamPagination.pageSize)
+})
+const teamTotal = computed(() =>
+  shouldLimitToOwnTeam.value ? filteredTeamRows.value.length : (teamsQuery.data.value?.total ?? 0),
+)
+const filteredMemberRows = computed(() => {
+  const rows = membersQuery.data.value?.records ?? []
+
+  if (!shouldLimitToOwnTeam.value) {
+    return rows
+  }
+
+  return rows.filter((item) => isAccessibleTeamId(item.teamId))
+})
+const memberRows = computed(() => {
+  if (!shouldLimitToOwnTeam.value) {
+    return filteredMemberRows.value
+  }
+
+  const start = (memberPagination.pageNo - 1) * memberPagination.pageSize
+  return filteredMemberRows.value.slice(start, start + memberPagination.pageSize)
+})
+const memberTotal = computed(() =>
+  shouldLimitToOwnTeam.value ? filteredMemberRows.value.length : (membersQuery.data.value?.total ?? 0),
+)
 
 function getTeamStatusMeta(status: TeamStatus) {
   return teamStatusMetaMap[status]
@@ -130,7 +188,7 @@ function resetTeamFilters() {
 
 function resetMemberFilters() {
   memberFilters.keyword = ''
-  memberFilters.teamId = undefined
+  memberFilters.teamId = shouldLimitToOwnTeam.value ? currentTeamId.value ?? undefined : undefined
   memberFilters.status = undefined
   memberPagination.pageNo = 1
 }
@@ -145,12 +203,22 @@ function resetTeamForm() {
 }
 
 function openCreateTeamDialog() {
+  if (shouldLimitToOwnTeam.value) {
+    ElMessage.error('只能维护本团队信息，不能新增其他团队')
+    return
+  }
+
   editingTeam.value = null
   resetTeamForm()
   teamDialogVisible.value = true
 }
 
 function openEditTeamDialog(team: Team) {
+  if (shouldLimitToOwnTeam.value && !isAccessibleTeamId(team.id)) {
+    ElMessage.error('只能维护本团队信息')
+    return
+  }
+
   editingTeam.value = team
   teamForm.teamName = team.teamName
   teamForm.departmentName = team.departmentName
@@ -167,6 +235,11 @@ async function submitTeam() {
   }
 
   if (editingTeam.value) {
+    if (shouldLimitToOwnTeam.value && !isAccessibleTeamId(editingTeam.value.id)) {
+      ElMessage.error('只能维护本团队信息')
+      return
+    }
+
     const payload: UpdateTeamRequest = {
       teamName: teamForm.teamName,
       departmentName: teamForm.departmentName,
@@ -181,6 +254,11 @@ async function submitTeam() {
     })
     ElMessage.success('团队信息已更新')
   } else {
+    if (shouldLimitToOwnTeam.value) {
+      ElMessage.error('只能维护本团队信息，不能新增其他团队')
+      return
+    }
+
     const payload: CreateTeamRequest = {
       teamName: teamForm.teamName,
       departmentName: teamForm.departmentName,
@@ -210,10 +288,18 @@ function resetMemberForm() {
 function openCreateMemberDialog() {
   editingMember.value = null
   resetMemberForm()
+  if (shouldLimitToOwnTeam.value) {
+    memberForm.teamId = currentTeamId.value ?? undefined
+  }
   memberDialogVisible.value = true
 }
 
 function openEditMemberDialog(member: Member) {
+  if (shouldLimitToOwnTeam.value && !isAccessibleTeamId(member.teamId)) {
+    ElMessage.error('只能维护本团队成员')
+    return
+  }
+
   editingMember.value = member
   memberForm.name = member.name
   memberForm.teamId = member.teamId ?? undefined
@@ -231,7 +317,16 @@ async function submitMember() {
     return
   }
 
+  if (shouldLimitToOwnTeam.value) {
+    memberForm.teamId = currentTeamId.value ?? undefined
+  }
+
   if (editingMember.value) {
+    if (shouldLimitToOwnTeam.value && !isAccessibleTeamId(editingMember.value.teamId)) {
+      ElMessage.error('只能维护本团队成员')
+      return
+    }
+
     const payload: UpdateMemberRequest = {
       name: memberForm.name,
       teamId: memberForm.teamId,
@@ -267,6 +362,11 @@ async function submitMember() {
 }
 
 async function changeMemberStatus(member: Member, status: MemberStatus) {
+  if (shouldLimitToOwnTeam.value && !isAccessibleTeamId(member.teamId)) {
+    ElMessage.error('只能维护本团队成员')
+    return
+  }
+
   await updateMemberStatusMutation.mutateAsync({
     memberId: member.id,
     payload: {
@@ -291,7 +391,7 @@ async function changeMemberStatus(member: Member, status: MemberStatus) {
             <el-button @click="resetTeamFilters">重置</el-button>
           </div>
           <div class="page-toolbar__actions">
-            <el-button type="primary" @click="openCreateTeamDialog">新建团队</el-button>
+            <el-button v-if="!shouldLimitToOwnTeam" type="primary" @click="openCreateTeamDialog">新建团队</el-button>
           </div>
         </div>
 
@@ -321,7 +421,7 @@ async function changeMemberStatus(member: Member, status: MemberStatus) {
           <el-pagination
             v-model:current-page="teamPagination.pageNo"
             v-model:page-size="teamPagination.pageSize"
-            :total="teamsQuery.data.value?.total ?? 0"
+            :total="teamTotal"
             :page-sizes="[10, 20, 50]"
             layout="total, sizes, prev, pager, next"
           />
@@ -332,9 +432,9 @@ async function changeMemberStatus(member: Member, status: MemberStatus) {
         <div class="page-toolbar">
           <div class="page-toolbar__filters">
             <el-input v-model="memberFilters.keyword" placeholder="搜索姓名或岗位" clearable style="max-width: 220px" />
-            <el-select v-model="memberFilters.teamId" placeholder="全部团队" clearable style="width: 180px">
+            <el-select v-model="memberFilters.teamId" :disabled="shouldLimitToOwnTeam" placeholder="全部团队" clearable style="width: 180px">
               <el-option
-                v-for="item in teamOptionsQuery.data.value?.records ?? []"
+                v-for="item in filteredTeamOptions"
                 :key="item.id"
                 :label="item.teamName"
                 :value="item.id"
@@ -382,7 +482,7 @@ async function changeMemberStatus(member: Member, status: MemberStatus) {
           <el-pagination
             v-model:current-page="memberPagination.pageNo"
             v-model:page-size="memberPagination.pageSize"
-            :total="membersQuery.data.value?.total ?? 0"
+            :total="memberTotal"
             :page-sizes="[10, 20, 50]"
             layout="total, sizes, prev, pager, next"
           />
@@ -416,7 +516,7 @@ async function changeMemberStatus(member: Member, status: MemberStatus) {
           <el-form-item label="负责人">
             <el-select v-model="teamForm.managerId" clearable placeholder="可选">
               <el-option
-                v-for="item in managerOptionsQuery.data.value?.records ?? []"
+                v-for="item in filteredManagerOptions"
                 :key="item.id"
                 :label="item.realName"
                 :value="item.id"
@@ -463,9 +563,9 @@ async function changeMemberStatus(member: Member, status: MemberStatus) {
         </el-col>
         <el-col :span="12">
           <el-form-item label="所属团队">
-            <el-select v-model="memberForm.teamId" clearable placeholder="可选">
+            <el-select v-model="memberForm.teamId" :disabled="shouldLimitToOwnTeam" clearable placeholder="可选">
               <el-option
-                v-for="item in teamOptionsQuery.data.value?.records ?? []"
+                v-for="item in filteredTeamOptions"
                 :key="item.id"
                 :label="item.teamName"
                 :value="item.id"

@@ -1,59 +1,69 @@
 import { useQuery } from '@tanstack/vue-query'
+import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 
 import { memberService } from '@/services/member-service'
 import { projectService } from '@/services/project-service'
 import { teamService } from '@/services/team-service'
 import { userService } from '@/services/user-service'
 import type { MemberListQuery, ProjectListQuery, TeamListQuery, UserListQuery } from '@/types/api'
+import { compactObject } from '@/utils/query'
 
 const optionQueryDefaults = {
   pageNo: 1,
   pageSize: 200,
 }
 
-export function useUserOptionsQuery(params: Partial<UserListQuery> = {}) {
+export function useUserOptionsQuery(params: MaybeRefOrGetter<Partial<UserListQuery>> = {}) {
+  const resolvedParams = computed(() => compactObject(toValue(params)))
+
   return useQuery({
-    queryKey: ['option-users', params],
+    queryKey: computed(() => ['option-users', resolvedParams.value]),
     queryFn: () =>
       userService.getUsers({
         ...optionQueryDefaults,
-        ...params,
+        ...resolvedParams.value,
       }),
     staleTime: 60 * 1000,
   })
 }
 
-export function useTeamOptionsQuery(params: Partial<TeamListQuery> = {}) {
+export function useTeamOptionsQuery(params: MaybeRefOrGetter<Partial<TeamListQuery>> = {}) {
+  const resolvedParams = computed(() => compactObject(toValue(params)))
+
   return useQuery({
-    queryKey: ['option-teams', params],
+    queryKey: computed(() => ['option-teams', resolvedParams.value]),
     queryFn: () =>
       teamService.getTeams({
         ...optionQueryDefaults,
-        ...params,
+        ...resolvedParams.value,
       }),
     staleTime: 60 * 1000,
   })
 }
 
-export function useMemberOptionsQuery(params: Partial<MemberListQuery> = {}) {
+export function useMemberOptionsQuery(params: MaybeRefOrGetter<Partial<MemberListQuery>> = {}) {
+  const resolvedParams = computed(() => compactObject(toValue(params)))
+
   return useQuery({
-    queryKey: ['option-members', params],
+    queryKey: computed(() => ['option-members', resolvedParams.value]),
     queryFn: () =>
       memberService.getMembers({
         ...optionQueryDefaults,
-        ...params,
+        ...resolvedParams.value,
       }),
     staleTime: 60 * 1000,
   })
 }
 
-export function useProjectOptionsQuery(params: Partial<ProjectListQuery> = {}) {
+export function useProjectOptionsQuery(params: MaybeRefOrGetter<Partial<ProjectListQuery>> = {}) {
+  const resolvedParams = computed(() => compactObject(toValue(params)))
+
   return useQuery({
-    queryKey: ['option-projects', params],
+    queryKey: computed(() => ['option-projects', resolvedParams.value]),
     queryFn: () =>
       projectService.getProjects({
         ...optionQueryDefaults,
-        ...params,
+        ...resolvedParams.value,
       }),
     staleTime: 60 * 1000,
   })

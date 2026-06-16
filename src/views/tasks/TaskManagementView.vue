@@ -5,7 +5,7 @@ import { computed, reactive, ref } from 'vue'
 
 import PageSection from '@/components/common/PageSection.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
-import { useProjectOptionsQuery, useUserOptionsQuery } from '@/composables/use-reference-data'
+import { useMemberOptionsQuery, useProjectOptionsQuery } from '@/composables/use-reference-data'
 import {
   useCreateTaskMutation,
   useCreateTaskProgressMutation,
@@ -14,6 +14,7 @@ import {
   useUpdateTaskMutation,
   useUpdateTaskStatusMutation,
 } from '@/composables/use-task-management'
+import { useTeamScope } from '@/composables/use-team-scope'
 import { priorityMetaMap, priorityOptions, taskStatusMetaMap, taskStatusOptions } from '@/constants/options'
 import type {
   CreateTaskRequest,
@@ -96,19 +97,23 @@ const pagination = reactive({
   pageSize: 10,
 })
 
+const { currentTeamId, shouldLimitToOwnTeam } = useTeamScope()
+
 const queryParams = computed(() => ({
   weekNo: filters.weekNo || undefined,
   projectId: filters.projectId,
   assigneeId: filters.assigneeId,
   status: filters.status,
   priority: filters.priority,
-  pageNo: pagination.pageNo,
-  pageSize: pagination.pageSize,
+  pageNo: shouldLimitToOwnTeam.value ? 1 : pagination.pageNo,
+  pageSize: shouldLimitToOwnTeam.value ? 500 : pagination.pageSize,
 }))
 
 const tasksQuery = useTasksQuery(queryParams)
 const projectOptionsQuery = useProjectOptionsQuery()
-const userOptionsQuery = useUserOptionsQuery()
+const memberOptionsQuery = useMemberOptionsQuery(
+  computed(() => (shouldLimitToOwnTeam.value && currentTeamId.value ? { teamId: currentTeamId.value } : {})),
+)
 const createTaskMutation = useCreateTaskMutation()
 const updateTaskMutation = useUpdateTaskMutation()
 const updateTaskStatusMutation = useUpdateTaskStatusMutation()
@@ -160,7 +165,31 @@ const progressRules = {
 }
 
 const progressQuery = useTaskProgressQuery(computed(() => progressTask.value?.id ?? null))
-const tableData = computed(() => tasksQuery.data.value?.records ?? [])
+const accessibleMemberIds = computed(() => new Set((memberOptionsQuery.data.value?.records ?? []).map((item) => item.id)))
+const filteredTaskRows = computed(() => {
+  const rows = tasksQuery.data.value?.records ?? []
+
+  if (!shouldLimitToOwnTeam.value) {
+    return rows
+  }
+
+  return rows.filter((row) => accessibleMemberIds.value.has(row.assigneeId))
+})
+const tableData = computed(() => {
+  if (!shouldLimitToOwnTeam.value) {
+    return filteredTaskRows.value
+  }
+
+  const start = (pagination.pageNo - 1) * pagination.pageSize
+  return filteredTaskRows.value.slice(start, start + pagination.pageSize)
+})
+const total = computed(() =>
+  shouldLimitToOwnTeam.value ? filteredTaskRows.value.length : (tasksQuery.data.value?.total ?? 0),
+)
+
+function isTaskAccessible(task: Task) {
+  return !shouldLimitToOwnTeam.value || accessibleMemberIds.value.has(task.assigneeId)
+}
 
 function getTaskStatusMeta(status: TaskStatus) {
   return taskStatusMetaMap[status]
@@ -199,6 +228,11 @@ function openCreateDialog() {
 }
 
 function openEditDialog(task: Task) {
+  if (!isTaskAccessible(task)) {
+    ElMessage.error('只能管理本团队成员的任务')
+    return
+  }
+
   editingTask.value = task
   form.title = task.title
   form.projectId = task.projectId ?? undefined
@@ -218,7 +252,17 @@ async function submitTask() {
     return
   }
 
+  if (shouldLimitToOwnTeam.value && !accessibleMemberIds.value.has(form.assigneeId as number)) {
+    ElMessage.error('只能为本团队成员创建或分配任务')
+    return
+  }
+
   if (editingTask.value) {
+    if (!isTaskAccessible(editingTask.value)) {
+      ElMessage.error('只能管理本团队成员的任务')
+      return
+    }
+
     const payload: UpdateTaskRequest = {
       title: form.title,
       projectId: form.projectId,
@@ -257,6 +301,11 @@ async function submitTask() {
 }
 
 function openStatusDialog(task: Task) {
+  if (!isTaskAccessible(task)) {
+    ElMessage.error('只能管理本团队成员的任务')
+    return
+  }
+
   statusTarget.value = task
   statusForm.status = task.status
   statusForm.progressRate = task.progressRate ?? 0
@@ -265,7 +314,11 @@ function openStatusDialog(task: Task) {
 }
 
 async function submitStatus() {
-  if (!statusTarget.value) {
+  if (!statusTarget.value || !isTaskAccessible(statusTarget.value)) {
+    if (statusTarget.value) {
+      ElMessage.error('只能管理本团队成员的任务')
+    }
+
     return
   }
 
@@ -282,6 +335,11 @@ async function submitStatus() {
 }
 
 function openProgressDrawer(task: Task) {
+  if (!isTaskAccessible(task)) {
+    ElMessage.error('只能管理本团队成员的任务')
+    return
+  }
+
   progressTask.value = task
   progressForm.progressRate = task.progressRate ?? 0
   progressForm.issueDesc = task.issueDesc ?? ''
@@ -291,7 +349,11 @@ function openProgressDrawer(task: Task) {
 
 async function submitProgress() {
   const valid = await progressFormRef.value?.validate().catch(() => false)
-  if (!valid || !progressTask.value) {
+  if (!valid || !progressTask.value || !isTaskAccessible(progressTask.value)) {
+    if (progressTask.value && !isTaskAccessible(progressTask.value)) {
+      ElMessage.error('只能管理本团队成员的任务')
+    }
+
     return
   }
 
@@ -324,9 +386,9 @@ async function submitProgress() {
         </el-select>
         <el-select v-model="filters.assigneeId" :placeholder="TEXT.allAssignees" clearable>
           <el-option
-            v-for="item in userOptionsQuery.data.value?.records ?? []"
+            v-for="item in memberOptionsQuery.data.value?.records ?? []"
             :key="item.id"
-            :label="item.realName"
+            :label="item.name"
             :value="item.id"
           />
         </el-select>
@@ -417,7 +479,7 @@ async function submitProgress() {
       <el-pagination
         v-model:current-page="pagination.pageNo"
         v-model:page-size="pagination.pageSize"
-        :total="tasksQuery.data.value?.total ?? 0"
+        :total="total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
       />
@@ -436,9 +498,9 @@ async function submitProgress() {
           <el-form-item :label="TEXT.assigneeLabel" prop="assigneeId">
             <el-select v-model="form.assigneeId" :placeholder="TEXT.selectAssignee">
               <el-option
-                v-for="item in userOptionsQuery.data.value?.records ?? []"
+                v-for="item in memberOptionsQuery.data.value?.records ?? []"
                 :key="item.id"
-                :label="item.realName"
+                :label="item.name"
                 :value="item.id"
               />
             </el-select>
